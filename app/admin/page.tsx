@@ -1,7 +1,6 @@
 import Link from "next/link";
 import ConfirmSubmit from "@/components/admin/ConfirmSubmit";
 import { getAdminArticles } from "@/lib/articles";
-import { usingDefaultCredentials } from "@/lib/auth";
 import { categories, getCategory } from "@/lib/config";
 import { formatDate } from "@/lib/format";
 import { kvMode } from "@/lib/kv";
@@ -34,16 +33,6 @@ export default async function AdminDashboard({ searchParams }: Props) {
 
   return (
     <div>
-      {usingDefaultCredentials() && (
-        <div role="alert" className="mb-4 rounded border border-[#A16207] px-4 py-3 text-sm text-[#A16207]">
-          <p className="font-bold">Vaqtinchalik login va parol ishlatilmoqda.</p>
-          <p className="mt-1">
-            Sayt internetga chiqqach, Vercel'da ADMIN_LOGIN va ADMIN_PASSWORD o'zgaruvchilarini o'rnating, aks holda
-            begona odam ham kirib olishi mumkin.
-          </p>
-        </div>
-      )}
-
       {mode === "none" && (
         <div role="alert" className="mb-4 rounded border border-[#C93B3B] px-4 py-3 text-sm text-[#C93B3B]">
           <p className="font-bold">Ma'lumotlar bazasi ulanmagan.</p>
