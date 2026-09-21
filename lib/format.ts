@@ -9,3 +9,8 @@ export function formatDate(date: string): string {
   if (!y || !m || !d) return date;
   return `${d} ${MONTHS[m - 1]} ${y}`;
 }
+
+// Toshkent vaqti bilan bugungi sana: "2026-09-21"
+export function todayTashkent(): string {
+  return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Tashkent" }).format(new Date());
+}
