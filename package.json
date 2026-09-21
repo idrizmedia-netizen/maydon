@@ -1,5 +1,5 @@
 {
-  "name": "sportxabar",
+  "name": "maydon",
   "version": "1.0.0",
   "private": true,
   "scripts": {
@@ -8,7 +8,6 @@
     "start": "next start"
   },
   "dependencies": {
-    "gray-matter": "^4.0.3",
     "next": "^15.5.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
