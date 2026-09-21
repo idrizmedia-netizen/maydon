@@ -1,8 +1,8 @@
 // Saytning asosiy sozlamalari. Nomni, tavsifni va kategoriyalarni shu yerda o'zgartiring.
 
 export const siteConfig = {
-  name: "SportXabar",
-  tagline: "Sport yangiliklari, tahlillar va qo'llanmalar",
+  name: "Maydon",
+  tagline: "Sport yangiliklari va tahlillar",
   description:
     "O'zbek tilida sport yangiliklari: futbol, boks, kurash, tennis, MMA va boshqa sport turlari bo'yicha maqolalar.",
   url: (process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000").replace(/\/$/, ""),
@@ -54,6 +54,11 @@ export const categories: Category[] = [
     color: "#0E7C86",
   },
 ];
+
+export const kinds = [
+  { value: "yangilik", label: "Yangilik" },
+  { value: "maqola", label: "Maqola" },
+] as const;
 
 export function getCategory(slug: string): Category | undefined {
   return categories.find((c) => c.slug === slug);
