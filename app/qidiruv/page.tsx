@@ -8,8 +8,8 @@ export const metadata: Metadata = {
   robots: { index: false },
 };
 
-export default function SearchPage() {
-  const items = getAllArticles().map((a) => ({
+export default async function SearchPage() {
+  const items = (await getAllArticles()).map((a) => ({
     slug: a.slug,
     title: a.title,
     excerpt: a.excerpt,
