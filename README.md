@@ -13,7 +13,8 @@ npm run dev
 
 - Sayt: `http://localhost:3000`
 - Admin panel: `http://localhost:3000/admin`
-- Vaqtinchalik kirish: login `Izzat`, parol `123456`
+- Kirish faqat Google orqali (bo'lim 8'ga qarang) - kompyuterda sinash uchun ham
+  GOOGLE_CLIENT_ID/SECRET kerak bo'ladi.
 
 Kompyuterda baza sozlash shart emas: maqolalar `.data/store.json` fayliga saqlanadi (bu fayl GitHub'ga yuklanmaydi).
 
@@ -91,16 +92,23 @@ Agar Vercel orqali emas, to'g'ridan-to'g'ri upstash.com'da baza yaratsangiz, "RE
 
 Ulanmagan bo'lsa, admin panelning yuqorida qizil ogohlantirish chiqadi.
 
-## 7. Login va parolni almashtirish (muhim)
+## 7. Google bilan kirish (majburiy)
 
-`Izzat` / `123456` faqat vaqtinchalik. Sayt internetga chiqqach, Vercel'da qo'shing:
+Admin panelga kirishning yagona yo'li — Google hisobi. Faqat bitta email'ga ruxsat beriladi
+(standart: `idrizmedia@gmail.com`).
 
-| Nomi | Qiymati |
-|---|---|
-| `ADMIN_LOGIN` | O'zingizning loginingiz |
-| `ADMIN_PASSWORD` | Uzun va murakkab parol |
+1. [console.cloud.google.com](https://console.cloud.google.com) → **APIs & Services → Credentials** →
+   **Create Credentials → OAuth client ID → Web application** (yoki Firebase'da Authentication →
+   Sign-in method → Google'ni yoqsangiz, shu client avtomatik yaratiladi).
+2. **Authorized redirect URIs** ga qo'shing: `https://SAYTINGIZ.vercel.app/api/auth/google/callback`
+   (kompyuterda sinash uchun `http://localhost:3000/api/auth/google/callback` ham qo'shing).
+3. Yaratilgan **Client ID** va **Client secret**'ni Vercel'da **Settings → Environment Variables**
+   ga qo'shing: `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`.
+4. Agar admin email `idrizmedia@gmail.com`dan farq qilsa, `ADMIN_GOOGLE_EMAIL` o'zgaruvchisini ham qo'shing.
+5. Qayta deploy qiling. Login sahifasida "Google bilan kirish" tugmasi paydo bo'ladi.
 
-Keyin qayta deploy qiling. Parol o'zgarganda eski sessiyalar avtomatik bekor bo'ladi. Ikkalasi ham o'rnatilgach, admin paneldagi sariq ogohlantirish yo'qoladi.
+Bu uchtasi o'rnatilmaguncha (`GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `AUTH_SECRET`) admin panelga
+hech kim kira olmaydi.
 
 ## 8. Ilova sifatida o'rnatish (PWA)
 
