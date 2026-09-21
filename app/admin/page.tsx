@@ -112,7 +112,7 @@ export default async function AdminDashboard({ searchParams }: Props) {
                 <h2 className="mt-1 text-lg font-bold leading-snug">{a.title}</h2>
 
                 <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm font-semibold">
-                  <Link href={`/admin/tahrirlash/${a.slug}`} className="underline underline-offset-4">
+                  <Link href={`/admin/${a.slug}`} className="underline underline-offset-4">
                     Tahrirlash
                   </Link>
                   {!a.draft && (
