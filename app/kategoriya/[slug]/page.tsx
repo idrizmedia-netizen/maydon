@@ -26,7 +26,7 @@ export default async function CategoryPage({ params }: Props) {
   const cat = getCategory(slug);
   if (!cat) notFound();
 
-  const items = getArticlesByCategory(cat.slug);
+  const items = await getArticlesByCategory(cat.slug);
 
   return (
     <div>
