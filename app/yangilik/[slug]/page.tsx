@@ -9,15 +9,15 @@ import { getCategory, siteConfig } from "@/lib/config";
 
 type Props = { params: Promise<{ slug: string }> };
 
-export function generateStaticParams() {
-  return getAllArticles().map((a) => ({ slug: a.slug }));
+export async function generateStaticParams() {
+  return (await getAllArticles()).map((a) => ({ slug: a.slug }));
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
   const article = await getArticle(slug);
   if (!article) return {};
-  const images = article.image ? [article.image] : undefined;
+  const images = [article.image ?? "/og.png"];
   return {
     title: article.title,
     description: article.excerpt,
@@ -40,7 +40,7 @@ export default async function ArticlePage({ params }: Props) {
   if (!article) notFound();
 
   const cat = getCategory(article.category);
-  const related = getRelated(article, 3);
+  const related = await getRelated(article, 3);
   const url = `${siteConfig.url}/yangilik/${article.slug}`;
   const enc = encodeURIComponent;
 
@@ -75,6 +75,7 @@ export default async function ArticlePage({ params }: Props) {
             {article.title}
           </h1>
           <div className="mt-4 flex flex-wrap gap-x-5 gap-y-1 text-sm text-white/85">
+            <span>{article.kind === "yangilik" ? "Yangilik" : "Maqola"}</span>
             <span>{article.author}</span>
             <time dateTime={article.date}>{formatDate(article.date)}</time>
             <span>{article.readingMinutes} daqiqalik o'qish</span>
