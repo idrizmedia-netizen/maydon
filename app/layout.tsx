@@ -2,6 +2,8 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import PwaRegister from "@/components/PwaRegister";
+import SiteShell from "@/components/SiteShell";
 import { siteConfig } from "@/lib/config";
 
 export const metadata: Metadata = {
@@ -11,14 +13,17 @@ export const metadata: Metadata = {
     template: `%s | ${siteConfig.name}`,
   },
   description: siteConfig.description,
+  applicationName: siteConfig.name,
+  appleWebApp: { capable: true, title: siteConfig.name, statusBarStyle: "default" },
   openGraph: {
     type: "website",
     locale: "uz_UZ",
     siteName: siteConfig.name,
     title: siteConfig.name,
     description: siteConfig.description,
+    images: [{ url: "/og.png", width: 1200, height: 630 }],
   },
-  twitter: { card: "summary" },
+  twitter: { card: "summary_large_image", images: ["/og.png"] },
   alternates: {
     types: { "application/rss+xml": "/feed.xml" },
   },
@@ -48,17 +53,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>
       <body className="flex min-h-screen flex-col">
-        <a
-          href="#asosiy"
-          className="sr-only focus:not-sr-only focus:absolute focus:left-3 focus:top-3 focus:z-50 focus:rounded focus:bg-surface focus:px-3 focus:py-2"
-        >
-          Asosiy tarkibga o'tish
-        </a>
-        <Header />
-        <main id="asosiy" className="mx-auto w-full max-w-6xl flex-1 px-4 py-8 sm:px-6">
+        <SiteShell header={<Header />} footer={<Footer />}>
           {children}
-        </main>
-        <Footer />
+        </SiteShell>
+        <PwaRegister />
       </body>
     </html>
   );
