@@ -5,8 +5,8 @@ import { getAllArticles } from "@/lib/articles";
 import { formatDate } from "@/lib/format";
 import { categories, getCategory } from "@/lib/config";
 
-export default function HomePage() {
-  const all = getAllArticles();
+export default async function HomePage() {
+  const all = await getAllArticles();
 
   if (all.length === 0) {
     return (
