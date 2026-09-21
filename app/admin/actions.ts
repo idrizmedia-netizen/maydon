@@ -3,14 +3,7 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { revalidatePath, revalidateTag } from "next/cache";
-import {
-  SESSION_COOKIE,
-  SESSION_MAX_AGE,
-  authConfigured,
-  checkCredentials,
-  createSessionToken,
-  verifySession,
-} from "@/lib/auth";
+import { SESSION_COOKIE, verifySession } from "@/lib/auth";
 import { deleteArticle, getStoredArticle, saveArticle, setDraft, type Kind } from "@/lib/articles";
 import { getCategory } from "@/lib/config";
 import { NOT_CONFIGURED } from "@/lib/kv";
@@ -35,34 +28,8 @@ function friendly(e: unknown): string {
   return "Saqlashda xatolik yuz berdi. Birozdan keyin qayta urinib ko'ring.";
 }
 
-/* ---------- Kirish / chiqish ---------- */
-
-export async function loginAction(_prev: FormState, formData: FormData): Promise<FormState> {
-  const login = String(formData.get("login") ?? "");
-  const password = String(formData.get("password") ?? "");
-
-  if (!authConfigured()) {
-    return {
-      error:
-        "Serverda AUTH_SECRET sozlanmagan. Vercel'da Settings, Environment Variables bo'limiga AUTH_SECRET qo'shing (kamida 16 belgi), so'ng qayta deploy qiling.",
-    };
-  }
-
-  if (!(await checkCredentials(login, password))) {
-    await new Promise((r) => setTimeout(r, 900)); // tez-tez urinishlarni sekinlashtiradi
-    return { error: "Login yoki parol noto'g'ri." };
-  }
-
-  const token = await createSessionToken();
-  (await cookies()).set(SESSION_COOKIE, token!, {
-    httpOnly: true,
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
-    path: "/",
-    maxAge: SESSION_MAX_AGE,
-  });
-  redirect("/admin");
-}
+/* ---------- Chiqish ---------- */
+// Kirish endi faqat Google orqali: app/api/auth/google/route.ts va .../callback/route.ts
 
 export async function logoutAction() {
   (await cookies()).delete(SESSION_COOKIE);
