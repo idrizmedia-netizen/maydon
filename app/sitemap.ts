@@ -2,9 +2,9 @@ import type { MetadataRoute } from "next";
 import { getAllArticles } from "@/lib/articles";
 import { categories, siteConfig } from "@/lib/config";
 
-export default function sitemap(): MetadataRoute.Sitemap {
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const base = siteConfig.url;
-  const articles = getAllArticles();
+  const articles = await getAllArticles();
 
   return [
     { url: base, lastModified: new Date(), changeFrequency: "daily", priority: 1 },
