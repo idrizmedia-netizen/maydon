@@ -1,11 +1,15 @@
 import Link from "next/link";
+import { cookies } from "next/headers";
 import InstallButton from "./InstallButton";
 import LogoMark from "./LogoMark";
 import Nav from "./Nav";
 import ThemeToggle from "./ThemeToggle";
 import { siteConfig } from "@/lib/config";
+import { SESSION_COOKIE, verifySession } from "@/lib/auth";
 
-export default function Header() {
+export default async function Header() {
+  const isAdmin = await verifySession((await cookies()).get(SESSION_COOKIE)?.value);
+
   return (
     <header className="sticky top-0 z-40 bg-surface">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3 sm:px-6">
@@ -15,6 +19,19 @@ export default function Header() {
         </Link>
 
         <div className="flex items-center gap-1">
+          {isAdmin && (
+            <Link
+              href="/admin"
+              aria-label="Admin panel"
+              title="Admin panel"
+              className="flex h-10 w-10 items-center justify-center rounded hover:bg-line"
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" />
+                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z" />
+              </svg>
+            </Link>
+          )}
           <InstallButton />
           <Link
             href="/qidiruv"
