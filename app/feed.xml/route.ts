@@ -11,8 +11,8 @@ function esc(s: string) {
     .replace(/"/g, "&quot;");
 }
 
-export function GET() {
-  const items = getAllArticles()
+export async function GET() {
+  const items = (await getAllArticles())
     .slice(0, 30)
     .map((a) => {
       const link = `${siteConfig.url}/yangilik/${a.slug}`;
