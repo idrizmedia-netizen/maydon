@@ -1,12 +1,15 @@
 import Link from "next/link";
 import ArticleCard from "@/components/ArticleCard";
+import GamesWidget from "@/components/GamesWidget";
 import PitchPanel from "@/components/PitchPanel";
 import { getAllArticles } from "@/lib/articles";
+import { getGames } from "@/lib/games";
 import { formatDate } from "@/lib/format";
 import { categories, getCategory } from "@/lib/config";
 
 export default async function HomePage() {
   const all = await getAllArticles();
+  const games = await getGames().catch(() => []);
 
   if (all.length === 0) {
     return (
@@ -48,7 +51,9 @@ export default async function HomePage() {
           </div>
         </PitchPanel>
 
-        <aside aria-labelledby="songgi">
+        <aside className="space-y-6">
+          {games.length > 0 && <GamesWidget games={games} />}
+          <div aria-labelledby="songgi">
           <h2 id="songgi" className="border-b-[3px] border-hl pb-2 text-xl font-extrabold tracking-tight">
             So'nggi xabarlar
           </h2>
@@ -78,6 +83,7 @@ export default async function HomePage() {
               );
             })}
           </ol>
+          </div>
         </aside>
       </section>
 
