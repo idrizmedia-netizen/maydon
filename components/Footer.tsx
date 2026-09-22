@@ -9,7 +9,6 @@ export default function Footer() {
           <p className="text-lg font-extrabold tracking-tight">{siteConfig.name}</p>
           <p className="mt-2 max-w-sm text-sm leading-relaxed text-muted">{siteConfig.description}</p>
           <div className="mt-4 flex gap-4 text-sm font-semibold">
-            <Link href="/feed.xml" className="underline underline-offset-4">RSS</Link>
             {siteConfig.telegram && (
               <a href={siteConfig.telegram} target="_blank" rel="noopener noreferrer" className="underline underline-offset-4">
                 Telegram kanal
