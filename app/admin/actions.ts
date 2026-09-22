@@ -4,7 +4,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { revalidatePath, revalidateTag } from "next/cache";
 import { SESSION_COOKIE, verifySession } from "@/lib/auth";
-import { deleteArticle, getStoredArticle, saveArticle, setDraft, type Kind } from "@/lib/articles";
+import { deleteArticle, getStoredArticle, saveArticle, setDraft, type Kind, type Media } from "@/lib/articles";
 import { getCategory } from "@/lib/config";
 import { NOT_CONFIGURED } from "@/lib/kv";
 import { todayTashkent } from "@/lib/format";
@@ -54,6 +54,9 @@ export async function saveArticleAction(_prev: FormState, formData: FormData): P
   const dateRaw = text(formData, "date", 10);
   const date = /^\d{4}-\d{2}-\d{2}$/.test(dateRaw) ? dateRaw : todayTashkent();
   const slug = text(formData, "slug", 90) || undefined;
+  const mediaRaw = text(formData, "media", 10);
+  const media: Media = mediaRaw === "video" || mediaRaw === "photo" ? mediaRaw : "none";
+  const videoUrl = media === "video" ? text(formData, "videoUrl", 300) : "";
 
   if (!title) return { error: "Sarlavha yozing." };
   if (!category) return { error: "Sport bo'limini tanlang." };
@@ -82,6 +85,8 @@ export async function saveArticleAction(_prev: FormState, formData: FormData): P
       featured: formData.get("featured") === "on",
       draft: formData.get("draft") === "on",
       tags,
+      media,
+      videoUrl,
     });
   } catch (e) {
     return { error: friendly(e) };
