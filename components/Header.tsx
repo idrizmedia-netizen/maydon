@@ -6,9 +6,14 @@ import Nav from "./Nav";
 import ThemeToggle from "./ThemeToggle";
 import { siteConfig } from "@/lib/config";
 import { SESSION_COOKIE, verifySession } from "@/lib/auth";
+import { USER_SESSION_COOKIE, verifyUserSession } from "@/lib/user-auth";
+import { getPublicUser } from "@/lib/users";
 
 export default async function Header() {
-  const isAdmin = await verifySession((await cookies()).get(SESSION_COOKIE)?.value);
+  const jar = await cookies();
+  const isAdmin = await verifySession(jar.get(SESSION_COOKIE)?.value);
+  const userId = await verifyUserSession(jar.get(USER_SESSION_COOKIE)?.value);
+  const user = userId ? await getPublicUser(userId) : null;
 
   return (
     <header className="sticky top-0 z-40 bg-surface">
@@ -45,6 +50,23 @@ export default async function Header() {
             </svg>
           </Link>
           <ThemeToggle />
+          {user ? (
+            <Link href="/profil" aria-label="Profil" title={user.nickname} className="ml-1 flex h-9 w-9 items-center justify-center overflow-hidden rounded-full border border-line bg-bg">
+              {user.avatar ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={user.avatar} alt="" className="h-full w-full object-cover" />
+              ) : (
+                <span className="text-sm font-bold">{user.nickname[0]?.toUpperCase() ?? "?"}</span>
+              )}
+            </Link>
+          ) : (
+            <Link
+              href="/kirish"
+              className="ml-1 rounded border border-line px-3 py-1.5 text-sm font-semibold hover:bg-line"
+            >
+              Kirish
+            </Link>
+          )}
         </div>
       </div>
       <Nav />
