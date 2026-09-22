@@ -6,6 +6,7 @@ import { getCategory } from "@/lib/config";
 type CardArticle = Pick<ArticleMeta, "slug" | "title" | "excerpt" | "category" | "date"> & {
   image?: string;
   views?: number;
+  media?: ArticleMeta["media"];
 };
 
 export default function ArticleCard({ article }: { article: CardArticle }) {
@@ -19,7 +20,19 @@ export default function ArticleCard({ article }: { article: CardArticle }) {
     >
       {article.image && (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={article.image} alt="" loading="lazy" className="aspect-[16/9] w-full object-cover" />
+        <div className="relative">
+          <img src={article.image} alt="" loading="lazy" className="aspect-[16/9] w-full object-cover" />
+          {article.media === "video" && (
+            <span className="absolute inset-0 flex items-center justify-center bg-black/25">
+              <span className="flex h-12 w-12 items-center justify-center rounded-full bg-white/90 text-xl">▶</span>
+            </span>
+          )}
+          {article.media === "photo" && (
+            <span className="absolute bottom-2 right-2 rounded bg-black/60 px-2 py-1 text-xs font-semibold text-white">
+              📷 Foto
+            </span>
+          )}
+        </div>
       )}
       <div className="flex flex-1 flex-col p-4">
         <div className="flex items-center gap-2 text-sm text-muted">
