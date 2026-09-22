@@ -2,7 +2,7 @@ import { cache } from "react";
 import { remark } from "remark";
 import remarkHtml from "remark-html";
 import { getCategory } from "./config";
-import { kvDel, kvGet, kvMget, kvMode, kvSet } from "./kv";
+import { kvDel, kvGet, kvIncr, kvMget, kvMode, kvSet } from "./kv";
 import { SEED_ARTICLES } from "./seed";
 import { slugify } from "./slug";
 
@@ -30,6 +30,7 @@ export type StoredArticle = {
 export type ArticleMeta = Omit<StoredArticle, "content" | "image"> & {
   image?: string;
   readingMinutes: number;
+  views: number;
 };
 
 export type Article = ArticleMeta & { html: string };
@@ -37,13 +38,14 @@ export type Article = ArticleMeta & { html: string };
 const INDEX_KEY = "art:index";
 const SEEDED_KEY = "art:seeded";
 const artKey = (slug: string) => `art:${slug}`;
+const viewsKey = (slug: string) => `views:${slug}`;
 
 function readingTime(text: string): number {
   const words = text.trim().split(/\s+/).length;
   return Math.max(1, Math.round(words / 180));
 }
 
-function toMeta(a: StoredArticle): ArticleMeta {
+function toMeta(a: StoredArticle, views = 0): ArticleMeta {
   const { content, image, ...rest } = a;
   return {
     ...rest,
@@ -51,7 +53,26 @@ function toMeta(a: StoredArticle): ArticleMeta {
     kind: a.kind === "yangilik" ? "yangilik" : "maqola",
     category: getCategory(a.category)?.slug ?? "boshqa",
     readingMinutes: readingTime(content),
+    views,
   };
+}
+
+// Bir nechta maqolaning ko'rishlar sonini bitta so'rovda oladi (ro'yxatlar uchun tez).
+async function readViews(slugs: string[]): Promise<Record<string, number>> {
+  if (slugs.length === 0) return {};
+  const raw = await kvMget(slugs.map(viewsKey), { fresh: false }).catch(() => slugs.map(() => null));
+  const out: Record<string, number> = {};
+  slugs.forEach((slug, i) => {
+    out[slug] = Number(raw[i]) || 0;
+  });
+  return out;
+}
+
+// Maqola ochilganda chaqiriladi: ko'rishlar sonini birga oshiradi.
+// Baza ulanmagan bo'lsa jim o'tkazib yuboriladi - sahifa buzilmasligi uchun.
+export async function incrementViews(slug: string): Promise<void> {
+  if (kvMode() === "none") return;
+  await kvIncr(viewsKey(slug)).catch(() => {});
 }
 
 function bySort(a: { date: string; createdAt: number }, b: { date: string; createdAt: number }) {
@@ -97,10 +118,9 @@ const readPublic = cache(() => readAllStored(false));
 
 export const getAllArticles = cache(async (): Promise<ArticleMeta[]> => {
   const all = await readPublic();
-  return all
-    .filter((a) => !a.draft)
-    .map(toMeta)
-    .sort(bySort);
+  const published = all.filter((a) => !a.draft);
+  const views = await readViews(published.map((a) => a.slug));
+  return published.map((a) => toMeta(a, views[a.slug])).sort(bySort);
 });
 
 export async function getArticle(slug: string): Promise<Article | null> {
@@ -108,7 +128,17 @@ export async function getArticle(slug: string): Promise<Article | null> {
   const found = all.find((a) => a.slug === slug && !a.draft);
   if (!found) return null;
   const html = String(await remark().use(remarkHtml).process(found.content));
-  return { ...toMeta(found), html };
+  const views = await readViews([slug]);
+  return { ...toMeta(found, views[slug]), html };
+}
+
+// Eng ko'p o'qilgan maqolalar - "Qaynoq yangiliklar" bloki uchun.
+export async function getMostViewed(limit = 8, excludeSlug?: string): Promise<ArticleMeta[]> {
+  const all = await getAllArticles();
+  return all
+    .filter((a) => a.slug !== excludeSlug)
+    .sort((a, b) => b.views - a.views || bySort(a, b))
+    .slice(0, limit);
 }
 
 export async function getArticlesByCategory(category: string): Promise<ArticleMeta[]> {
