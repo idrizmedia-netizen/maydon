@@ -31,6 +31,9 @@ export default async function AdminLayout({ children }: { children: React.ReactN
               <Link href="/admin/yangi" className="hover:underline underline-offset-4">
                 Yangi maqola
               </Link>
+              <Link href="/admin/oyinlar" className="hover:underline underline-offset-4">
+                Bugungi o'yinlar
+              </Link>
               <Link href="/" target="_blank" className="hover:underline underline-offset-4">
                 Saytni ko'rish
               </Link>
