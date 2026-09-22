@@ -4,8 +4,8 @@ import { notFound } from "next/navigation";
 import ArticleCard from "@/components/ArticleCard";
 import Comments from "@/components/Comments";
 import PitchPanel from "@/components/PitchPanel";
-import { getAllArticles, getArticle, getRelated } from "@/lib/articles";
-import { formatDate } from "@/lib/format";
+import { getAllArticles, getArticle, getRelated, incrementViews } from "@/lib/articles";
+import { formatDate, formatViews } from "@/lib/format";
 import { getCategory, siteConfig } from "@/lib/config";
 
 type Props = { params: Promise<{ slug: string }> };
@@ -39,6 +39,9 @@ export default async function ArticlePage({ params }: Props) {
   const { slug } = await params;
   const article = await getArticle(slug);
   if (!article) notFound();
+
+  // O'quvchi sonini oshiramiz (sahifa ko'rsatilishini kutmaydi, xato bo'lsa jim o'tadi)
+  incrementViews(slug).catch(() => {});
 
   const cat = getCategory(article.category);
   const related = await getRelated(article, 3);
@@ -80,6 +83,7 @@ export default async function ArticlePage({ params }: Props) {
             <span>{article.author}</span>
             <time dateTime={article.date}>{formatDate(article.date)}</time>
             <span>{article.readingMinutes} daqiqalik o'qish</span>
+            <span>{formatViews(article.views)} ko'rishlar</span>
           </div>
         </div>
       </PitchPanel>
