@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import ArticleCard from "@/components/ArticleCard";
+import Comments from "@/components/Comments";
 import PitchPanel from "@/components/PitchPanel";
 import { getAllArticles, getArticle, getRelated } from "@/lib/articles";
 import { formatDate } from "@/lib/format";
@@ -128,6 +129,8 @@ export default async function ArticlePage({ params }: Props) {
           </div>
         </section>
       )}
+
+      <Comments slug={article.slug} />
     </article>
   );
 }
