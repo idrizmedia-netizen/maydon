@@ -9,12 +9,15 @@ export default function Nav() {
 
   const items = [
     { href: "/", label: "Bosh sahifa", color: "var(--ink)", active: pathname === "/" },
+    { href: "/oyinlar", label: "O'yinlar", color: "var(--ink)", active: pathname === "/oyinlar" },
     ...categories.map((c) => ({
       href: `/kategoriya/${c.slug}`,
       label: c.name,
       color: c.color,
       active: pathname === `/kategoriya/${c.slug}`,
     })),
+    { href: "/video", label: "Video", color: "var(--ink)", active: pathname === "/video" },
+    { href: "/photo", label: "Foto", color: "var(--ink)", active: pathname === "/photo" },
   ];
 
   return (
