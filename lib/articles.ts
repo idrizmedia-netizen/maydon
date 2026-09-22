@@ -7,6 +7,7 @@ import { SEED_ARTICLES } from "./seed";
 import { slugify } from "./slug";
 
 export type Kind = "yangilik" | "maqola";
+export type Media = "none" | "video" | "photo";
 
 // Bazada saqlanadigan to'liq yozuv
 export type StoredArticle = {
@@ -22,6 +23,8 @@ export type StoredArticle = {
   draft: boolean;
   tags: string[];
   content: string; // Markdown
+  media?: Media; // "video" yoki "photo" bo'lsa, Video/Foto bo'limida ham chiqadi
+  videoUrl?: string; // media = "video" bo'lganda: YouTube/Telegram video havolasi
   createdAt: number;
   updatedAt: number;
 };
@@ -52,6 +55,7 @@ function toMeta(a: StoredArticle, views = 0): ArticleMeta {
     image: image || undefined,
     kind: a.kind === "yangilik" ? "yangilik" : "maqola",
     category: getCategory(a.category)?.slug ?? "boshqa",
+    media: a.media ?? "none",
     readingMinutes: readingTime(content),
     views,
   };
@@ -143,6 +147,12 @@ export async function getMostViewed(limit = 8, excludeSlug?: string): Promise<Ar
 
 export async function getArticlesByCategory(category: string): Promise<ArticleMeta[]> {
   return (await getAllArticles()).filter((a) => a.category === category);
+}
+
+// Video yoki Foto bo'limi uchun: media turi bo'yicha filtrlaydi.
+export async function getArticlesByMedia(media: Media, limit?: number): Promise<ArticleMeta[]> {
+  const all = (await getAllArticles()).filter((a) => a.media === media);
+  return typeof limit === "number" ? all.slice(0, limit) : all;
 }
 
 export async function getRelated(article: ArticleMeta, limit = 3): Promise<ArticleMeta[]> {
