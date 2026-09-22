@@ -7,6 +7,7 @@ import PitchPanel from "@/components/PitchPanel";
 import { getAllArticles, getArticle, getRelated, incrementViews } from "@/lib/articles";
 import { formatDate, formatViews } from "@/lib/format";
 import { getCategory, siteConfig } from "@/lib/config";
+import { toEmbedUrl } from "@/lib/video";
 
 type Props = { params: Promise<{ slug: string }> };
 
@@ -80,6 +81,8 @@ export default async function ArticlePage({ params }: Props) {
           </h1>
           <div className="mt-4 flex flex-wrap gap-x-5 gap-y-1 text-sm text-white/85">
             <span>{article.kind === "yangilik" ? "Yangilik" : "Maqola"}</span>
+            {article.media === "video" && <span>▶ Video</span>}
+            {article.media === "photo" && <span>📷 Foto</span>}
             <span>{article.author}</span>
             <time dateTime={article.date}>{formatDate(article.date)}</time>
             <span>{article.readingMinutes} daqiqalik o'qish</span>
@@ -93,7 +96,19 @@ export default async function ArticlePage({ params }: Props) {
           <p className="max-w-[68ch] font-text text-xl leading-relaxed text-muted">{article.excerpt}</p>
         )}
 
-        {article.image && (
+        {article.media === "video" && article.videoUrl && toEmbedUrl(article.videoUrl) && (
+          <div className="mt-8 aspect-video w-full max-w-3xl overflow-hidden rounded bg-black">
+            <iframe
+              src={toEmbedUrl(article.videoUrl)!}
+              title={article.title}
+              className="h-full w-full"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+            />
+          </div>
+        )}
+
+        {article.image && article.media !== "video" && (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={article.image} alt="" className="mt-8 w-full max-w-3xl rounded" />
         )}
