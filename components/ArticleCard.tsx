@@ -1,10 +1,11 @@
 import Link from "next/link";
 import type { ArticleMeta } from "@/lib/articles";
-import { formatDate } from "@/lib/format";
+import { formatDate, formatViews } from "@/lib/format";
 import { getCategory } from "@/lib/config";
 
 type CardArticle = Pick<ArticleMeta, "slug" | "title" | "excerpt" | "category" | "date"> & {
   image?: string;
+  views?: number;
 };
 
 export default function ArticleCard({ article }: { article: CardArticle }) {
@@ -38,6 +39,9 @@ export default function ArticleCard({ article }: { article: CardArticle }) {
         </h3>
         {article.excerpt && (
           <p className="mt-2 line-clamp-2 text-[0.95rem] leading-relaxed text-muted">{article.excerpt}</p>
+        )}
+        {typeof article.views === "number" && article.views > 0 && (
+          <p className="mt-2 text-xs text-muted">{formatViews(article.views)} ko'rish</p>
         )}
       </div>
     </article>
