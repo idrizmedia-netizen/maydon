@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { getCategory } from "@/lib/config";
 import type { Game } from "@/lib/games";
 
@@ -12,9 +13,14 @@ export default function GamesWidget({ games }: { games: Game[] }) {
 
   return (
     <aside aria-labelledby="oyinlar" className="rounded border border-line bg-surface p-4">
-      <h2 id="oyinlar" className="mb-3 text-lg font-extrabold tracking-tight">
-        Bugungi o'yinlar
-      </h2>
+      <div className="mb-3 flex items-center justify-between">
+        <h2 id="oyinlar" className="text-lg font-extrabold tracking-tight">
+          Bugungi o'yinlar
+        </h2>
+        <Link href="/oyinlar" className="text-sm font-semibold text-accent underline underline-offset-4">
+          Barchasi
+        </Link>
+      </div>
       <ul className="space-y-3">
         {games.map((g) => {
           const c = getCategory(g.category);
