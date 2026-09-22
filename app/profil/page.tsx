@@ -3,8 +3,11 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { USER_SESSION_COOKIE, verifyUserSession } from "@/lib/user-auth";
 import { getUserById } from "@/lib/users";
+import { getUserComments } from "@/lib/comments";
+import { getStoredArticle } from "@/lib/articles";
 import ProfileForm from "@/components/ProfileForm";
 import PasswordForm from "@/components/PasswordForm";
+import MyComments from "@/components/MyComments";
 import { userLogoutAction } from "./actions";
 
 export const metadata: Metadata = { title: "Profil" };
@@ -15,6 +18,13 @@ export default async function ProfilePage() {
   if (!userId) redirect("/kirish");
   const user = await getUserById(userId);
   if (!user) redirect("/kirish");
+  const rawComments = await getUserComments(userId);
+  const myComments = await Promise.all(
+    rawComments.map(async (c) => {
+      const article = await getStoredArticle(c.slug).catch(() => null);
+      return { ...c, title: article?.title ?? "O'chirilgan maqola" };
+    })
+  );
 
   return (
     <div className="mx-auto mt-4 max-w-lg space-y-8">
@@ -36,6 +46,11 @@ export default async function ProfilePage() {
       <section className="rounded border border-line bg-surface p-5">
         <h2 className="mb-4 font-bold">Parolni almashtirish</h2>
         <PasswordForm />
+      </section>
+
+      <section className="rounded border border-line bg-surface p-5">
+        <h2 className="mb-4 font-bold">Mening fikrlarim</h2>
+        <MyComments comments={myComments} />
       </section>
     </div>
   );
