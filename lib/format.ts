@@ -15,6 +15,15 @@ export function todayTashkent(): string {
   return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Tashkent" }).format(new Date());
 }
 
+// Toshkent sanasidan necha kun oldin/keyin: dateTashkent(-1) -> kecha, dateTashkent(1) -> ertaga
+export function dateTashkent(offsetDays: number): string {
+  const today = todayTashkent(); // "YYYY-MM-DD"
+  const [y, m, d] = today.split("-").map(Number);
+  const base = new Date(Date.UTC(y, m - 1, d));
+  base.setUTCDate(base.getUTCDate() + offsetDays);
+  return base.toISOString().slice(0, 10);
+}
+
 // Ko'rishlar sonini qisqartirib ko'rsatadi: 950 -> "950", 1200 -> "1,2 ming", 15000 -> "15 ming"
 export function formatViews(n: number): string {
   if (n < 1000) return String(n);
