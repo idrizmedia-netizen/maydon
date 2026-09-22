@@ -19,6 +19,8 @@ export type FormInitial = {
   image?: string;
   featured?: boolean;
   draft?: boolean;
+  media?: string;
+  videoUrl?: string;
 };
 
 const initialState: FormState = { error: null };
@@ -28,6 +30,7 @@ const labelCls = "mb-1 block text-sm font-semibold";
 export default function ArticleForm({ initial, today }: { initial: FormInitial; today: string }) {
   const [state, action, pending] = useActionState(saveArticleAction, initialState);
   const [image, setImage] = useState(initial.image ?? "");
+  const [media, setMedia] = useState(initial.media ?? "none");
   const contentRef = useRef<HTMLTextAreaElement>(null);
 
   // Matn ichiga belgilar qo'yish (Markdown)
@@ -122,6 +125,49 @@ export default function ArticleForm({ initial, today }: { initial: FormInitial; 
             </button>
           )}
         </div>
+      </div>
+
+      <div className="rounded border border-line bg-surface p-4">
+        <fieldset>
+          <legend className={labelCls}>Bo'lim (Video / Foto)</legend>
+          <p className="mb-2 text-sm text-muted">
+            Belgilansa, maqola "Video" yoki "Foto" bo'limida ham chiqadi.
+          </p>
+          <div className="flex flex-wrap gap-5">
+            <label className="flex items-center gap-2">
+              <input type="radio" name="media" value="none" checked={media === "none"} onChange={() => setMedia("none")} />
+              Oddiy maqola
+            </label>
+            <label className="flex items-center gap-2">
+              <input type="radio" name="media" value="video" checked={media === "video"} onChange={() => setMedia("video")} />
+              Video
+            </label>
+            <label className="flex items-center gap-2">
+              <input type="radio" name="media" value="photo" checked={media === "photo"} onChange={() => setMedia("photo")} />
+              Foto galereya
+            </label>
+          </div>
+        </fieldset>
+        {media === "video" && (
+          <div className="mt-3">
+            <label htmlFor="videoUrl" className={labelCls}>
+              Video havolasi (YouTube va h.k.)
+            </label>
+            <input
+              id="videoUrl"
+              name="videoUrl"
+              type="url"
+              defaultValue={initial.videoUrl}
+              placeholder="https://www.youtube.com/watch?v=..."
+              className={inputCls}
+            />
+          </div>
+        )}
+        {media === "photo" && (
+          <p className="mt-3 text-sm text-muted">
+            Galereya uchun matn ichiga yuqoridagi "Matnga rasm qo'shish" tugmasi orqali bir nechta rasm joylashtiring.
+          </p>
+        )}
       </div>
 
       <div>
