@@ -2,7 +2,7 @@ import Link from "next/link";
 import ArticleCard from "@/components/ArticleCard";
 import GamesWidget from "@/components/GamesWidget";
 import PitchPanel from "@/components/PitchPanel";
-import { getAllArticles, getMostViewed } from "@/lib/articles";
+import { getAllArticles, getArticlesByMedia, getMostViewed } from "@/lib/articles";
 import { getGames } from "@/lib/games";
 import { formatDate, formatViews } from "@/lib/format";
 import { categories, getCategory } from "@/lib/config";
@@ -33,6 +33,9 @@ export default async function HomePage() {
 
   // Qaynoq yangiliklar: eng ko'p o'qilgan maqolalar (lead'dan tashqari)
   const hot = await getMostViewed(8, lead.slug);
+
+  // Video va Foto bo'limlari uchun so'nggi materiallar
+  const [videos, photos] = await Promise.all([getArticlesByMedia("video", 4), getArticlesByMedia("photo", 4)]);
 
   return (
     <div className="space-y-14">
@@ -152,6 +155,46 @@ export default async function HomePage() {
           ))}
         </div>
       </section>
+
+      {/* Video va Foto */}
+      {(videos.length > 0 || photos.length > 0) && (
+        <section className="grid gap-10 lg:grid-cols-2">
+          {videos.length > 0 && (
+            <div aria-labelledby="kun-videosi">
+              <div className="mb-4 flex items-end justify-between border-b-[3px] border-hl pb-2">
+                <h2 id="kun-videosi" className="flex items-center gap-2 text-xl font-extrabold tracking-tight">
+                  Kun videosi <span aria-hidden="true">▶</span>
+                </h2>
+                <Link href="/video" className="text-sm font-semibold text-accent underline underline-offset-4">
+                  Barchasi
+                </Link>
+              </div>
+              <div className="grid gap-4 sm:grid-cols-2">
+                {videos.map((a) => (
+                  <ArticleCard key={a.slug} article={a} />
+                ))}
+              </div>
+            </div>
+          )}
+          {photos.length > 0 && (
+            <div aria-labelledby="kun-fotosi">
+              <div className="mb-4 flex items-end justify-between border-b-[3px] border-hl pb-2">
+                <h2 id="kun-fotosi" className="flex items-center gap-2 text-xl font-extrabold tracking-tight">
+                  Kun fotosi <span aria-hidden="true">📷</span>
+                </h2>
+                <Link href="/photo" className="text-sm font-semibold text-accent underline underline-offset-4">
+                  Barchasi
+                </Link>
+              </div>
+              <div className="grid gap-4 sm:grid-cols-2">
+                {photos.map((a) => (
+                  <ArticleCard key={a.slug} article={a} />
+                ))}
+              </div>
+            </div>
+          )}
+        </section>
+      )}
 
       {/* Kategoriyalar bo'yicha */}
       {categories.map((cat) => {
