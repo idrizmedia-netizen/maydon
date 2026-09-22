@@ -125,3 +125,28 @@ export async function kvDel(key: string): Promise<void> {
   }
   throw new Error(NOT_CONFIGURED);
 }
+
+// Sonni birga oshiradi va yangi qiymatni qaytaradi (ko'rishlar soni kabi hisoblagichlar uchun).
+// Ulanmagan bo'lsa, jim tarzda 0 qaytaradi - sahifa yuklanishini bloklamaslik uchun.
+export async function kvIncr(key: string): Promise<number> {
+  const mode = kvMode();
+  if (mode === "redis") {
+    const cfg = redisConfig()!;
+    const res = await fetch(`${cfg.url}/incr/${encodeURIComponent(key)}`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${cfg.token}` },
+      cache: "no-store",
+    });
+    if (!res.ok) return 0;
+    const json = (await res.json()) as { result: number };
+    return json.result ?? 0;
+  }
+  if (mode === "file") {
+    const data = await readFileStore();
+    const next = (Number(data[key]) || 0) + 1;
+    data[key] = String(next);
+    await writeFileStore(data);
+    return next;
+  }
+  return 0;
+}
