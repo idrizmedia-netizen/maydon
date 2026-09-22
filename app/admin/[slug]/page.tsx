@@ -30,6 +30,8 @@ export default async function EditArticlePage({ params }: { params: Promise<{ sl
           image: a.image,
           featured: a.featured,
           draft: a.draft,
+          media: a.media ?? "none",
+          videoUrl: a.videoUrl,
         }}
       />
     </div>
