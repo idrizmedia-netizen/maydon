@@ -7,6 +7,12 @@ export const metadata: Metadata = {
   title: "Video",
   description: `${siteConfig.name} saytidagi sport videolari: gollar, sharhlar va qiziqarli lavhalar.`,
   alternates: { canonical: "/video" },
+  openGraph: {
+    type: "website",
+    title: `Video | ${siteConfig.name}`,
+    description: `${siteConfig.name} saytidagi sport videolari.`,
+    url: "/video",
+  },
 };
 
 export default async function VideoPage() {
