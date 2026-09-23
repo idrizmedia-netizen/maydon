@@ -12,7 +12,6 @@
 // hisobni real vaqtda yangilamaydi (faqat pullik Premium V2'da bor) - shuning uchun
 // hisob mavjud bo'lsa "tugadi", aks holda "rejalashtirilgan" deb belgilanadi.
 
-import { todayTashkent } from "./format";
 import type { FetchedGame, LeagueDef, SyncFailReason, SyncResult } from "./sports-api";
 import type { GameStatus } from "./games";
 
@@ -54,9 +53,9 @@ function eventTime(e: TSDBEvent): string {
   return (e.strTime ?? "").slice(0, 5);
 }
 
-export async function fetchTheSportsDbLeagueGames(def: LeagueDef): Promise<SyncResult> {
+// `date`: "YYYY-MM-DD" — Kecha/Bugun/Ertaga tabidan tanlangan sana.
+export async function fetchTheSportsDbLeagueGames(def: LeagueDef, date: string): Promise<SyncResult> {
   if (!def.theSportsDbMatch) return { ok: false, reason: "not_found" };
-  const date = todayTashkent();
   const res = await tsdbEventsDay(date, "Soccer");
   if (!res.ok) return res;
   const matched = res.events.filter((e) => def.theSportsDbMatch!.test(e.strLeague ?? ""));
@@ -66,8 +65,7 @@ export async function fetchTheSportsDbLeagueGames(def: LeagueDef): Promise<SyncR
 // Tennis va boks kabi sport turlarida "liga" tushunchasi yo'q (turnirlar har hafta
 // o'zgaradi) - shuning uchun kunlik BARCHA o'yin/janglarni bitta so'rov bilan olamiz,
 // har birining o'z turniri nomi (strLeague) "league" maydoniga yoziladi (guruhlash uchun).
-export async function fetchTheSportsDbSportGames(sport: string): Promise<SyncResult> {
-  const date = todayTashkent();
+export async function fetchTheSportsDbSportGames(sport: string, date: string): Promise<SyncResult> {
   const res = await tsdbEventsDay(date, sport);
   if (!res.ok) return res;
   return { ok: true, games: res.events.map((e) => toFetchedGame(e, e.strLeague ?? undefined)) };
