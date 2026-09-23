@@ -82,13 +82,12 @@ export default async function PublicGameCenterPage({ searchParams }: Props) {
             if (catGames.length === 0) return null;
 
             // Futbolda bir nechta turnir bo'lishi mumkin - ular ostida kichik sarlavha bilan guruhlaymiz.
-            const groups: { league: string | null; items: typeof catGames }[] =
-              cat.slug === "futbol" && catGames.some((g) => g.league)
-                ? Array.from(new Set(catGames.map((g) => g.league ?? "Boshqa"))).map((league) => ({
-                    league,
-                    items: catGames.filter((g) => (g.league ?? "Boshqa") === league),
-                  }))
-                : [{ league: null, items: catGames }];
+            const groups: { league: string | null; items: typeof catGames }[] = catGames.some((g) => g.league)
+              ? Array.from(new Set(catGames.map((g) => g.league ?? "Boshqa"))).map((league) => ({
+                  league,
+                  items: catGames.filter((g) => (g.league ?? "Boshqa") === league),
+                }))
+              : [{ league: null, items: catGames }];
 
             return (
               <section key={cat.slug} aria-labelledby={`oyin-${cat.slug}`}>
