@@ -3,7 +3,7 @@ import Link from "next/link";
 import { categories } from "@/lib/config";
 import { getGames } from "@/lib/games";
 import { dateTashkent, formatDate } from "@/lib/format";
-import { addGameAction, deleteGameAction, updateGameAction } from "./actions";
+import { addGameAction, deleteGameAction, syncFootballAction, syncMmaAction, updateGameAction } from "./actions";
 import { getTeamLogos } from "@/lib/team-logo";
 
 function TeamLogo({ src }: { src: string | null }) {
@@ -75,6 +75,27 @@ export default async function GameCenterPage({ searchParams }: Props) {
           );
         })}
       </div>
+
+      {offset === 0 && (
+        <div className="mb-6 flex flex-wrap gap-3">
+          <form action={syncFootballAction}>
+            <button
+              type="submit"
+              className="rounded border border-line bg-bg px-4 py-2.5 text-sm font-semibold hover:bg-line"
+            >
+              ⚽ Futbolni avtomatik yuklash (bugun)
+            </button>
+          </form>
+          <form action={syncMmaAction}>
+            <button
+              type="submit"
+              className="rounded border border-line bg-bg px-4 py-2.5 text-sm font-semibold hover:bg-line"
+            >
+              🥊 MMA'ni avtomatik yuklash (bugun)
+            </button>
+          </form>
+        </div>
+      )}
 
       <section className="mb-10 rounded border border-line bg-surface p-4">
         <h2 className="mb-3 text-lg font-extrabold tracking-tight">
