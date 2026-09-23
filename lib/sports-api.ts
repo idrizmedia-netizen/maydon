@@ -13,7 +13,6 @@
 //   - shu fayl              -> MMA: API-Sports (v1.mma.api-sports.io). Kerakli env:
 //     API_SPORTS_KEY (dashboard.api-football.com'dagi kalitingiz).
 
-import { todayTashkent } from "./format";
 import type { GameStatus } from "./games";
 
 const KEY = process.env.API_SPORTS_KEY;
@@ -150,8 +149,10 @@ type FightsResponse = {
   }[];
 };
 
-export async function fetchMmaGamesToday(): Promise<SyncResult> {
-  const res = await apiSportsGet<FightsResponse>("v1.mma", `/fights?date=${todayTashkent()}`);
+// `date`: "YYYY-MM-DD" — Kecha/Bugun/Ertaga tabidan tanlangan sana (default: bugun,
+// chaqiruvchi joyda beriladi).
+export async function fetchMmaGamesForDate(date: string): Promise<SyncResult> {
+  const res = await apiSportsGet<FightsResponse>("v1.mma", `/fights?date=${date}`);
   if (!res.ok) return res;
 
   const games: FetchedGame[] = res.data.response
