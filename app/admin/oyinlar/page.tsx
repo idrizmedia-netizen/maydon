@@ -1,10 +1,19 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { categories } from "@/lib/config";
-import { getGames } from "@/lib/games";
+import { getGames, type Game } from "@/lib/games";
 import { dateTashkent, formatDate } from "@/lib/format";
-import { addGameAction, deleteGameAction, syncFootballAction, syncMmaAction, updateGameAction } from "./actions";
+import { addGameAction, deleteGameAction, syncLeagueAction, syncMmaAction, updateGameAction } from "./actions";
 import { getTeamLogos } from "@/lib/team-logo";
+import { FOOTBALL_LEAGUES } from "@/lib/sports-api";
+
+const SYNC_REASON_LABEL: Record<string, string> = {
+  no_key: "API kaliti (API_SPORTS_KEY) sozlanmagan. Vercel → Settings → Environment Variables'ga qo'shing va qayta deploy qiling.",
+  http_error:
+    "API xato qaytardi: kalit noto'g'ri bo'lishi yoki shu sport/liga uchun dashboard.api-football.com'da obuna faollashtirilmagan bo'lishi mumkin.",
+  network_error: "Tarmoq xatosi yuz berdi. Birozdan keyin qayta urinib ko'ring.",
+  not_found: "Bu turnir uchun joriy mavsum yoki liga topilmadi.",
+};
 
 function TeamLogo({ src }: { src: string | null }) {
   if (!src) return null;
@@ -41,7 +50,14 @@ const TABS = [
   { offset: 1, label: "Ertaga" },
 ];
 
-type Props = { searchParams: Promise<{ kun?: string }> };
+const LEAGUE_LABELS: Record<string, string> = {
+  ...Object.fromEntries(FOOTBALL_LEAGUES.map((l) => [l.key, l.label])),
+  mma: "MMA",
+};
+
+type Props = {
+  searchParams: Promise<{ kun?: string; sync?: string; league?: string; count?: string; reason?: string }>;
+};
 
 export default async function GameCenterPage({ searchParams }: Props) {
   const sp = await searchParams;
@@ -49,6 +65,8 @@ export default async function GameCenterPage({ searchParams }: Props) {
   const date = dateTashkent(offset);
   const games = await getGames(date);
   const logos = await getTeamLogos(games.flatMap((g) => [g.team1, g.team2])).catch(() => ({} as Record<string, string | null>));
+
+  const syncLeagueLabel = sp.league ? LEAGUE_LABELS[sp.league] ?? sp.league : null;
 
   return (
     <div>
@@ -76,24 +94,42 @@ export default async function GameCenterPage({ searchParams }: Props) {
         })}
       </div>
 
+      {offset === 0 && sp.sync === "ok" && (
+        <div className="mb-6 rounded border border-[#1B8A4B] bg-[#1B8A4B]/10 px-4 py-3 text-sm font-semibold text-[#1B8A4B]">
+          {syncLeagueLabel}: {sp.count === "0" ? "bugun uchun o'yin topilmadi." : `${sp.count} ta o'yin yuklandi/yangilandi.`}
+        </div>
+      )}
+      {offset === 0 && sp.sync === "err" && (
+        <div className="mb-6 rounded border border-[#C93B3B] bg-[#C93B3B]/10 px-4 py-3 text-sm font-semibold text-[#C93B3B]">
+          {syncLeagueLabel} yuklanmadi: {SYNC_REASON_LABEL[sp.reason ?? ""] ?? "Noma'lum xatolik."}
+        </div>
+      )}
+
       {offset === 0 && (
-        <div className="mb-6 flex flex-wrap gap-3">
-          <form action={syncFootballAction}>
-            <button
-              type="submit"
-              className="rounded border border-line bg-bg px-4 py-2.5 text-sm font-semibold hover:bg-line"
-            >
-              ⚽ Futbolni avtomatik yuklash (bugun)
-            </button>
-          </form>
-          <form action={syncMmaAction}>
-            <button
-              type="submit"
-              className="rounded border border-line bg-bg px-4 py-2.5 text-sm font-semibold hover:bg-line"
-            >
-              🥊 MMA'ni avtomatik yuklash (bugun)
-            </button>
-          </form>
+        <div className="mb-6">
+          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted">
+            Avtomatik yuklash (bugungi o'yinlar)
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {FOOTBALL_LEAGUES.map((l) => (
+              <form key={l.key} action={syncLeagueAction.bind(null, l.key)}>
+                <button
+                  type="submit"
+                  className="rounded border border-line bg-bg px-3.5 py-2 text-sm font-semibold hover:bg-line"
+                >
+                  ⚽ {l.label}
+                </button>
+              </form>
+            ))}
+            <form action={syncMmaAction}>
+              <button
+                type="submit"
+                className="rounded border border-line bg-bg px-3.5 py-2 text-sm font-semibold hover:bg-line"
+              >
+                🥊 MMA
+              </button>
+            </form>
+          </div>
         </div>
       )}
 
@@ -159,14 +195,31 @@ export default async function GameCenterPage({ searchParams }: Props) {
           {categories.map((cat) => {
             const catGames = games.filter((g) => g.category === cat.slug);
             if (catGames.length === 0) return null;
+
+            // Futbolda bir nechta turnir bo'lishi mumkin - ular ostida kichik sarlavha bilan guruhlaymiz.
+            // Boshqa sport turlarida yoki liga belgilanmagan o'yinlarda oddiy ro'yxat ko'rinishida qoladi.
+            const groups: { league: string | null; items: typeof catGames }[] =
+              cat.slug === "futbol" && catGames.some((g) => g.league)
+                ? Array.from(new Set(catGames.map((g) => g.league ?? "Boshqa"))).map((league) => ({
+                    league,
+                    items: catGames.filter((g) => (g.league ?? "Boshqa") === league),
+                  }))
+                : [{ league: null, items: catGames }];
+
             return (
               <section key={cat.slug} aria-labelledby={`oyin-${cat.slug}`}>
                 <h2 id={`oyin-${cat.slug}`} className="mb-3 flex items-center gap-3 text-xl font-extrabold tracking-tight">
                   <span className="inline-block h-5 w-1.5 rounded-sm" style={{ backgroundColor: cat.color }} aria-hidden="true" />
                   {cat.name}
                 </h2>
-                <div className="overflow-hidden rounded border border-line bg-surface">
-                  {catGames.map((g, i) => (
+                {groups.map((group) => (
+                <div key={group.league ?? "all"} className="mb-4 overflow-hidden rounded border border-line bg-surface last:mb-0">
+                  {group.league && (
+                    <div className="border-b border-line bg-bg px-4 py-2 text-xs font-bold uppercase tracking-wide text-muted">
+                      {group.league}
+                    </div>
+                  )}
+                  {group.items.map((g, i) => (
                     <form
                       key={g.id}
                       action={updateGameAction}
@@ -228,6 +281,7 @@ export default async function GameCenterPage({ searchParams }: Props) {
                     </form>
                   ))}
                 </div>
+                ))}
               </section>
             );
           })}
