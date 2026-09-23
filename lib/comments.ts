@@ -1,6 +1,6 @@
 // Maqolalarga yoziladigan fikrlar.
 
-import { kvGet, kvSet } from "./kv";
+import { kvGet, kvMget, kvSet } from "./kv";
 
 export type Comment = {
   id: string;
@@ -77,4 +77,24 @@ export async function deleteComment(slug: string, id: string): Promise<void> {
       JSON.stringify(userList.filter((c) => c.commentId !== id))
     );
   }
+}
+
+// Bir nechta maqolaning izohlar sonini bitta so'rovda oladi (ro'yxatlar uchun).
+export async function getCommentCounts(slugs: string[]): Promise<Record<string, number>> {
+  if (slugs.length === 0) return {};
+  const raw = await kvMget(slugs.map(commentsKey), { fresh: false }).catch(() => slugs.map(() => null));
+  const out: Record<string, number> = {};
+  slugs.forEach((slug, i) => {
+    if (!raw[i]) {
+      out[slug] = 0;
+      return;
+    }
+    try {
+      const arr = JSON.parse(raw[i]!) as Comment[];
+      out[slug] = Array.isArray(arr) ? arr.length : 0;
+    } catch {
+      out[slug] = 0;
+    }
+  });
+  return out;
 }
