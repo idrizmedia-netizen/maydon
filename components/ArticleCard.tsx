@@ -6,6 +6,7 @@ import { getCategory } from "@/lib/config";
 type CardArticle = Pick<ArticleMeta, "slug" | "title" | "excerpt" | "category" | "date"> & {
   image?: string;
   views?: number;
+  commentCount?: number;
   media?: ArticleMeta["media"];
 };
 
@@ -41,6 +42,11 @@ export default function ArticleCard({ article }: { article: CardArticle }) {
           <time dateTime={article.date} className="ml-auto">
             {formatDate(article.date)}
           </time>
+          {typeof article.commentCount === "number" && article.commentCount > 0 && (
+            <span className="flex items-center gap-1 text-xs">
+              💬 {article.commentCount}
+            </span>
+          )}
         </div>
         <h3 className="mt-2 text-lg font-extrabold leading-snug tracking-tight">
           <Link
