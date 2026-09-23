@@ -25,7 +25,7 @@ export type FetchedGame = {
 };
 
 // Nima uchun muvaffaqiyatsiz bo'lganini admin panelda aniq ko'rsatish uchun.
-export type SyncFailReason = "no_key" | "http_error" | "network_error" | "not_found";
+export type SyncFailReason = "no_key" | "http_error" | "rate_limited" | "network_error" | "not_found";
 export type SyncResult = { ok: true; games: FetchedGame[] } | { ok: false; reason: SyncFailReason };
 
 function tashkentTime(iso: string): string {
@@ -59,6 +59,7 @@ async function apiSportsGet<T>(host: string, path: string): Promise<ApiResult<T>
       headers: { "x-apisports-key": KEY },
       cache: "no-store",
     });
+    if (res.status === 429) return { ok: false, reason: "rate_limited" };
     if (!res.ok) return { ok: false, reason: "http_error" };
     const data = (await res.json()) as T;
     if (hasApiErrors(data)) return { ok: false, reason: "http_error" };
