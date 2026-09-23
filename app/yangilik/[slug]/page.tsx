@@ -19,7 +19,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
   const article = await getArticle(slug);
   if (!article) return {};
-  const images = [article.image ?? "/og.png"];
+  // Muqova rasmi bo'lsa - o'shani, bo'lmasa avtomatik generatsiya qilingan OG rasmni ishlatamiz
+  const images = [article.image || `/yangilik/${article.slug}/opengraph-image`];
   return {
     title: article.title,
     description: article.excerpt,
