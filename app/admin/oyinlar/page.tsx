@@ -3,17 +3,17 @@ import Link from "next/link";
 import { categories } from "@/lib/config";
 import { getGames, type Game } from "@/lib/games";
 import { dateTashkent, formatDate } from "@/lib/format";
-import { addGameAction, deleteGameAction, syncLeagueAction, syncMmaAction, updateGameAction } from "./actions";
+import { addGameAction, deleteGameAction, syncBoxingAction, syncLeagueAction, syncMmaAction, syncTennisAction, updateGameAction } from "./actions";
 import { getTeamLogos } from "@/lib/team-logo";
 import { FOOTBALL_LEAGUES } from "@/lib/sports-api";
 
 const SYNC_REASON_LABEL: Record<string, string> = {
-  no_key: "API kaliti (API_SPORTS_KEY) sozlanmagan. Vercel → Settings → Environment Variables'ga qo'shing va qayta deploy qiling.",
+  no_key: "API kaliti sozlanmagan. Vercel → Settings → Environment Variables'ga qo'shing va qayta deploy qiling.",
   http_error:
-    "API xato qaytardi: kalit noto'g'ri bo'lishi yoki shu sport/liga uchun dashboard.api-football.com'da obuna faollashtirilmagan bo'lishi mumkin.",
-  rate_limited: "Juda ko'p so'rov yuborildi (daqiqalik limit - 10 so'rov/daqiqa). Bir daqiqa kutib, qayta urinib ko'ring.",
+    "API xato qaytardi: kalit noto'g'ri bo'lishi yoki shu sport/liga uchun obuna faollashtirilmagan bo'lishi mumkin.",
+  rate_limited: "Juda ko'p so'rov yuborildi (daqiqalik limit). Bir daqiqa kutib, qayta urinib ko'ring.",
   network_error: "Tarmoq xatosi yuz berdi. Birozdan keyin qayta urinib ko'ring.",
-  not_found: "Bu turnir uchun joriy mavsum yoki liga topilmadi.",
+  not_found: "Bu turnir uchun ma'lumot topilmadi.",
 };
 
 function TeamLogo({ src }: { src: string | null }) {
@@ -54,6 +54,8 @@ const TABS = [
 const LEAGUE_LABELS: Record<string, string> = {
   ...Object.fromEntries(FOOTBALL_LEAGUES.map((l) => [l.key, l.label])),
   mma: "MMA",
+  tennis: "Tennis",
+  boks: "Boks",
 };
 
 type Props = {
@@ -130,7 +132,23 @@ export default async function GameCenterPage({ searchParams }: Props) {
                 type="submit"
                 className="rounded border border-line bg-bg px-3.5 py-2 text-sm font-semibold hover:bg-line"
               >
-                🥊 MMA
+                🥋 MMA
+              </button>
+            </form>
+            <form action={syncBoxingAction}>
+              <button
+                type="submit"
+                className="rounded border border-line bg-bg px-3.5 py-2 text-sm font-semibold hover:bg-line"
+              >
+                🥊 Boks
+              </button>
+            </form>
+            <form action={syncTennisAction}>
+              <button
+                type="submit"
+                className="rounded border border-line bg-bg px-3.5 py-2 text-sm font-semibold hover:bg-line"
+              >
+                🎾 Tennis
               </button>
             </form>
           </div>
@@ -202,13 +220,12 @@ export default async function GameCenterPage({ searchParams }: Props) {
 
             // Futbolda bir nechta turnir bo'lishi mumkin - ular ostida kichik sarlavha bilan guruhlaymiz.
             // Boshqa sport turlarida yoki liga belgilanmagan o'yinlarda oddiy ro'yxat ko'rinishida qoladi.
-            const groups: { league: string | null; items: typeof catGames }[] =
-              cat.slug === "futbol" && catGames.some((g) => g.league)
-                ? Array.from(new Set(catGames.map((g) => g.league ?? "Boshqa"))).map((league) => ({
-                    league,
-                    items: catGames.filter((g) => (g.league ?? "Boshqa") === league),
-                  }))
-                : [{ league: null, items: catGames }];
+            const groups: { league: string | null; items: typeof catGames }[] = catGames.some((g) => g.league)
+              ? Array.from(new Set(catGames.map((g) => g.league ?? "Boshqa"))).map((league) => ({
+                  league,
+                  items: catGames.filter((g) => (g.league ?? "Boshqa") === league),
+                }))
+              : [{ league: null, items: catGames }];
 
             return (
               <section key={cat.slug} aria-labelledby={`oyin-${cat.slug}`}>
