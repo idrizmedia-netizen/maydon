@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getCategory } from "@/lib/config";
 import type { Game } from "@/lib/games";
+import { getTeamLogos } from "@/lib/team-logo";
 
 const STATUS_LABEL: Record<string, string> = {
   rejalashtirilgan: "hali boshlanmadi",
@@ -8,8 +9,16 @@ const STATUS_LABEL: Record<string, string> = {
   tugadi: "tugadi",
 };
 
-export default function GamesWidget({ games }: { games: Game[] }) {
+function TeamLogo({ src, name }: { src: string | null; name: string }) {
+  if (!src) return null;
+  // eslint-disable-next-line @next/next/no-img-element
+  return <img src={src} alt="" width={18} height={18} className="inline-block shrink-0 rounded-full object-contain" />;
+}
+
+export default async function GamesWidget({ games }: { games: Game[] }) {
   if (games.length === 0) return null;
+
+  const logos = await getTeamLogos(games.flatMap((g) => [g.team1, g.team2])).catch(() => ({} as Record<string, string | null>));
 
   return (
     <aside aria-labelledby="oyinlar" className="rounded border border-line bg-surface p-4">
@@ -35,10 +44,16 @@ export default function GamesWidget({ games }: { games: Game[] }) {
                   <span className="ml-auto">{g.status === "tugadi" ? "Tugadi" : g.time || STATUS_LABEL[g.status]}</span>
                 )}
               </div>
-              <div className="flex items-center justify-between text-sm font-semibold">
-                <span>{g.team1}</span>
-                <span className="tabular-nums">{hasScore ? `${g.score1} : ${g.score2}` : g.time || "—"}</span>
-                <span className="text-right">{g.team2}</span>
+              <div className="flex items-center justify-between gap-2 text-sm font-semibold">
+                <span className="flex items-center gap-1.5">
+                  <TeamLogo src={logos[g.team1] ?? null} name={g.team1} />
+                  {g.team1}
+                </span>
+                <span className="shrink-0 tabular-nums">{hasScore ? `${g.score1} : ${g.score2}` : g.time || "—"}</span>
+                <span className="flex items-center justify-end gap-1.5 text-right">
+                  {g.team2}
+                  <TeamLogo src={logos[g.team2] ?? null} name={g.team2} />
+                </span>
               </div>
             </li>
           );
