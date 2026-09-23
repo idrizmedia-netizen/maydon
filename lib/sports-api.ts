@@ -2,10 +2,11 @@
 //
 // MUHIM: bu funksiyalar faqat admin "Avtomatik yuklash" tugmasini bosganda chaqiriladi,
 // oddiy tashrifchi sahifani ochganda EMAS - bepul reja kuniga atigi 100 so'rovga
-// cheklangan (har sport turi uchun alohida), shuning uchun uni tejash kerak.
+// cheklangan (har mahsulot/sport turi uchun ALOHIDA - futbol va MMA ikkita alohida
+// mahsulot, ikkalasiga ham dashboard.api-football.com'da alohida obuna kerak,
+// hattoki kalit bitta bo'lsa ham).
 //
-// Kerakli environment variable: API_SPORTS_KEY (dashboard.api-football.com'dagi kalitingiz,
-// Football va MMA uchun bitta xil kalit ishlaydi).
+// Kerakli environment variable: API_SPORTS_KEY (dashboard.api-football.com'dagi kalitingiz).
 
 import { kvGet, kvSet } from "./kv";
 import { todayTashkent } from "./format";
@@ -20,7 +21,12 @@ export type FetchedGame = {
   status: GameStatus;
   score1: number | null;
   score2: number | null;
+  league?: string;
 };
+
+// Nima uchun muvaffaqiyatsiz bo'lganini admin panelda aniq ko'rsatish uchun.
+export type SyncFailReason = "no_key" | "http_error" | "network_error" | "not_found";
+export type SyncResult = { ok: true; games: FetchedGame[] } | { ok: false; reason: SyncFailReason };
 
 function tashkentTime(iso: string): string {
   try {
@@ -34,50 +40,102 @@ function tashkentTime(iso: string): string {
   }
 }
 
-async function apiSportsGet<T>(host: string, path: string): Promise<T | null> {
-  if (!KEY) return null; // kalit hali qo'shilmagan bo'lsa, jim tarzda hech narsa qaytarmaymiz
+type ApiResult<T> = { ok: true; data: T } | { ok: false; reason: SyncFailReason };
+
+// API-Sports ba'zan HTTP 200 bilan javob berib, xatoni "errors" maydonida qaytaradi
+// (masalan, shu mahsulotga obuna bo'lmaganda) - shuni ham xato deb hisoblaymiz.
+function hasApiErrors(json: unknown): boolean {
+  const e = (json as { errors?: unknown } | null)?.errors;
+  if (!e) return false;
+  if (Array.isArray(e)) return e.length > 0;
+  if (typeof e === "object") return Object.keys(e as object).length > 0;
+  return false;
+}
+
+async function apiSportsGet<T>(host: string, path: string): Promise<ApiResult<T>> {
+  if (!KEY) return { ok: false, reason: "no_key" };
   try {
     const res = await fetch(`https://${host}.api-sports.io${path}`, {
       headers: { "x-apisports-key": KEY },
       cache: "no-store",
     });
-    if (!res.ok) return null;
-    return (await res.json()) as T;
+    if (!res.ok) return { ok: false, reason: "http_error" };
+    const data = (await res.json()) as T;
+    if (hasApiErrors(data)) return { ok: false, reason: "http_error" };
+    return { ok: true, data };
   } catch {
-    return null;
+    return { ok: false, reason: "network_error" };
   }
 }
 
-/* ---------- Futbol: O'zbekiston Superligasi ---------- */
+/* ---------- Futbol: ligalar ro'yxati ---------- */
+
+export type LeagueKey =
+  | "uzbekistan"
+  | "premier-league"
+  | "la-liga"
+  | "serie-a"
+  | "bundesliga"
+  | "ligue-1"
+  | "champions-league"
+  | "europa-league";
+
+// apiId berilgan bo'lsa - doimiy (barqaror) API-Football liga ID'si.
+// Berilmasa (O'zbekiston) - nomi bo'yicha dinamik qidiriladi (quyida).
+export const FOOTBALL_LEAGUES: { key: LeagueKey; label: string; apiId?: number }[] = [
+  { key: "uzbekistan", label: "O'zbekiston Superligasi" },
+  { key: "premier-league", label: "Angliya - Premier Liga", apiId: 39 },
+  { key: "la-liga", label: "Ispaniya - La Liga", apiId: 140 },
+  { key: "serie-a", label: "Italiya - Seriya A", apiId: 135 },
+  { key: "bundesliga", label: "Germaniya - Bundesliga", apiId: 78 },
+  { key: "ligue-1", label: "Fransiya - Ligue 1", apiId: 61 },
+  { key: "champions-league", label: "UEFA Chempionlar Ligasi", apiId: 2 },
+  { key: "europa-league", label: "UEFA Yevropa Ligasi", apiId: 3 },
+];
 
 type LeagueInfo = { id: number; season: number };
-const UZ_LEAGUE_CACHE_KEY = "sports-api:uz-football-league";
+type SeasonsResponse = { response: { league: { id: number; name: string; type: string }; seasons: { year: number; current: boolean }[] }[] };
 
-// Liga ID va joriy mavsum raqami kamdan-kam o'zgaradi - bir marta topib, KV'da saqlab qo'yamiz.
-async function getUzLeague(): Promise<LeagueInfo | null> {
-  const cached = await kvGet(UZ_LEAGUE_CACHE_KEY).catch(() => null);
+// Barqaror ID'si bor liga uchun: joriy mavsum raqamini topib, KV'da keshlaydi
+// (mavsum raqami taxminan yiliga bir marta o'zgaradi).
+async function getLeagueSeasonById(apiId: number, cacheKey: string): Promise<ApiResult<LeagueInfo>> {
+  const cached = await kvGet(cacheKey).catch(() => null);
   if (cached) {
     try {
-      return JSON.parse(cached) as LeagueInfo;
+      return { ok: true, data: JSON.parse(cached) as LeagueInfo };
     } catch {
       /* buzilgan kesh - qaytadan izlaymiz */
     }
   }
+  const res = await apiSportsGet<SeasonsResponse>("v3.football", `/leagues?id=${apiId}`);
+  if (!res.ok) return res;
+  const season = res.data.response[0]?.seasons.find((s) => s.current)?.year;
+  if (!season) return { ok: false, reason: "not_found" };
+  const info: LeagueInfo = { id: apiId, season };
+  await kvSet(cacheKey, JSON.stringify(info)).catch(() => {});
+  return { ok: true, data: info };
+}
 
-  type LeaguesResponse = {
-    response: {
-      league: { id: number; name: string; type: string };
-      seasons: { year: number; current: boolean }[];
-    }[];
-  };
-  const data = await apiSportsGet<LeaguesResponse>("v3.football", "/leagues?country=Uzbekistan");
-  const found = data?.response.find((r) => r.league.type === "League" && /super/i.test(r.league.name));
+// O'zbekiston Superligasi'ning ID'si barqaror emas deb topilgani uchun (dastlabki
+// versiyada ham shunday edi) - mamlakat + nomi bo'yicha qidiramiz.
+async function getUzLeague(): Promise<ApiResult<LeagueInfo>> {
+  const cacheKey = "sports-api:league:uzbekistan";
+  const cached = await kvGet(cacheKey).catch(() => null);
+  if (cached) {
+    try {
+      return { ok: true, data: JSON.parse(cached) as LeagueInfo };
+    } catch {
+      /* buzilgan kesh - qaytadan izlaymiz */
+    }
+  }
+  const res = await apiSportsGet<SeasonsResponse>("v3.football", "/leagues?country=Uzbekistan");
+  if (!res.ok) return res;
+  const found = res.data.response.find((r) => r.league.type === "League" && /super/i.test(r.league.name));
   const season = found?.seasons.find((s) => s.current)?.year;
-  if (!found || !season) return null;
-
+  if (!found || !season) return { ok: false, reason: "not_found" };
   const info: LeagueInfo = { id: found.league.id, season };
-  await kvSet(UZ_LEAGUE_CACHE_KEY, JSON.stringify(info)).catch(() => {});
-  return info;
+  await kvSet(cacheKey, JSON.stringify(info)).catch(() => {});
+  return { ok: true, data: info };
 }
 
 function mapFootballStatus(short: string): GameStatus {
@@ -86,37 +144,47 @@ function mapFootballStatus(short: string): GameStatus {
   return "rejalashtirilgan";
 }
 
-export async function fetchFootballGamesToday(): Promise<FetchedGame[]> {
-  const league = await getUzLeague();
-  if (!league) return [];
+type FixturesResponse = {
+  response: {
+    fixture: { date: string; status: { short: string } };
+    teams: { home: { name: string }; away: { name: string } };
+    goals: { home: number | null; away: number | null };
+  }[];
+};
 
-  type FixturesResponse = {
-    response: {
-      fixture: { date: string; status: { short: string } };
-      teams: { home: { name: string }; away: { name: string } };
-      goals: { home: number | null; away: number | null };
-    }[];
-  };
-  const data = await apiSportsGet<FixturesResponse>(
+// Berilgan liga uchun BUGUNGI o'yinlarni oladi.
+export async function fetchFootballLeagueGames(key: LeagueKey): Promise<SyncResult> {
+  const def = FOOTBALL_LEAGUES.find((l) => l.key === key);
+  if (!def) return { ok: false, reason: "not_found" };
+
+  const leagueRes = def.apiId
+    ? await getLeagueSeasonById(def.apiId, `sports-api:league:${def.key}`)
+    : await getUzLeague();
+  if (!leagueRes.ok) return leagueRes;
+
+  const res = await apiSportsGet<FixturesResponse>(
     "v3.football",
-    `/fixtures?league=${league.id}&season=${league.season}&date=${todayTashkent()}`
+    `/fixtures?league=${leagueRes.data.id}&season=${leagueRes.data.season}&date=${todayTashkent()}`
   );
-  if (!data) return [];
+  if (!res.ok) return res;
 
-  return data.response.map((f) => ({
+  const games: FetchedGame[] = res.data.response.map((f) => ({
     team1: f.teams.home.name,
     team2: f.teams.away.name,
     time: tashkentTime(f.fixture.date),
     status: mapFootballStatus(f.fixture.status.short),
     score1: f.goals.home,
     score2: f.goals.away,
+    league: def.label,
   }));
+  return { ok: true, games };
 }
 
 /* ---------- MMA ---------- */
-// Diqqat: bu qismning maydon nomlari (teams.home/away) API-Sports oilasidagi boshqa
-// sport turlariga (basketbol, hokkey va h.k.) qarab olingan taxmin - MMA'ga xos
-// nozikliklar bo'lsa, birinchi sinovdan keyin moslashtiramiz.
+// Diqqat: API-MMA (v1.mma.api-sports.io) asosiy futbol API'sidan ALOHIDA mahsulot -
+// bir xil hisob/kalit bilan ishlaydi, lekin dashboard.api-football.com'da unga
+// ALOHIDA obuna (bepul reja ham bo'lsa-da, faollashtirish kerak) bo'lishi shart,
+// aks holda so'rovlar "http_error" bilan qaytadi.
 
 function mapMmaStatus(short: string | undefined): GameStatus {
   if (!short || short === "NS" || short === "TBD") return "rejalashtirilgan";
@@ -124,18 +192,19 @@ function mapMmaStatus(short: string | undefined): GameStatus {
   return "jonli";
 }
 
-export async function fetchMmaGamesToday(): Promise<FetchedGame[]> {
-  type FightsResponse = {
-    response: {
-      date: string;
-      status?: { short?: string };
-      teams?: { home?: { name?: string }; away?: { name?: string } };
-    }[];
-  };
-  const data = await apiSportsGet<FightsResponse>("v1.mma", `/fights?date=${todayTashkent()}`);
-  if (!data) return [];
+type FightsResponse = {
+  response: {
+    date: string;
+    status?: { short?: string };
+    teams?: { home?: { name?: string }; away?: { name?: string } };
+  }[];
+};
 
-  return data.response
+export async function fetchMmaGamesToday(): Promise<SyncResult> {
+  const res = await apiSportsGet<FightsResponse>("v1.mma", `/fights?date=${todayTashkent()}`);
+  if (!res.ok) return res;
+
+  const games: FetchedGame[] = res.data.response
     .filter((f) => f.teams?.home?.name && f.teams?.away?.name)
     .map((f) => ({
       team1: f.teams!.home!.name!,
@@ -145,4 +214,5 @@ export async function fetchMmaGamesToday(): Promise<FetchedGame[]> {
       score1: null,
       score2: null,
     }));
+  return { ok: true, games };
 }
