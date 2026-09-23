@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import type { ArticleMeta } from "@/lib/articles";
 import { formatDate, formatViews } from "@/lib/format";
@@ -20,9 +21,15 @@ export default function ArticleCard({ article }: { article: CardArticle }) {
       style={{ borderLeft: `4px solid ${color}` }}
     >
       {article.image && (
-        // eslint-disable-next-line @next/next/no-img-element
-        <div className="relative">
-          <img src={article.image} alt="" loading="lazy" className="aspect-[16/9] w-full object-cover" />
+        <div className="relative aspect-[16/9] w-full overflow-hidden">
+          <Image
+            src={article.image}
+            alt=""
+            fill
+            loading="lazy"
+            sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
+            className="object-cover"
+          />
           {article.media === "video" && (
             <span className="absolute inset-0 flex items-center justify-center bg-black/25">
               <span className="flex h-12 w-12 items-center justify-center rounded-full bg-white/90 text-xl">▶</span>
