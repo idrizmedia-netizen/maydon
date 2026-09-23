@@ -26,7 +26,9 @@ export type FetchedGame = {
 
 // Nima uchun muvaffaqiyatsiz bo'lganini admin panelda aniq ko'rsatish uchun.
 export type SyncFailReason = "no_key" | "http_error" | "rate_limited" | "network_error" | "not_found";
-export type SyncResult = { ok: true; games: FetchedGame[] } | { ok: false; reason: SyncFailReason };
+export type SyncResult =
+  | { ok: true; games: FetchedGame[] }
+  | { ok: false; reason: SyncFailReason; detail?: string };
 
 function tashkentTime(iso: string): string {
   try {
@@ -40,16 +42,28 @@ function tashkentTime(iso: string): string {
   }
 }
 
-type ApiResult<T> = { ok: true; data: T } | { ok: false; reason: SyncFailReason };
+type ApiResult<T> = { ok: true; data: T } | { ok: false; reason: SyncFailReason; detail?: string };
 
 // API-Sports ba'zan HTTP 200 bilan javob berib, xatoni "errors" maydonida qaytaradi
-// (masalan, shu mahsulotga obuna bo'lmaganda) - shuni ham xato deb hisoblaymiz.
+// (masalan, shu mahsulotga obuna bo'lmaganda yoki daqiqalik limitga tegib ketganda) -
+// shuni ham xato deb hisoblaymiz va matnini admin panelga ko'rsatish uchun ajratib olamiz.
 function hasApiErrors(json: unknown): boolean {
   const e = (json as { errors?: unknown } | null)?.errors;
   if (!e) return false;
   if (Array.isArray(e)) return e.length > 0;
   if (typeof e === "object") return Object.keys(e as object).length > 0;
   return false;
+}
+
+function extractErrorDetail(json: unknown): string | undefined {
+  const e = (json as { errors?: unknown } | null)?.errors;
+  if (!e) return undefined;
+  if (Array.isArray(e)) return e.length ? String(e[0]).slice(0, 200) : undefined;
+  if (typeof e === "object") {
+    const vals = Object.values(e as Record<string, unknown>);
+    return vals.length ? String(vals[0]).slice(0, 200) : undefined;
+  }
+  return String(e).slice(0, 200);
 }
 
 async function apiSportsGet<T>(host: string, path: string): Promise<ApiResult<T>> {
@@ -60,10 +74,21 @@ async function apiSportsGet<T>(host: string, path: string): Promise<ApiResult<T>
       cache: "no-store",
     });
     if (res.status === 429) return { ok: false, reason: "rate_limited" };
-    if (!res.ok) return { ok: false, reason: "http_error" };
-    const data = (await res.json()) as T;
-    if (hasApiErrors(data)) return { ok: false, reason: "http_error" };
-    return { ok: true, data };
+
+    let json: unknown = null;
+    try {
+      json = await res.json();
+    } catch {
+      /* javob JSON emas - pastda umumiy xato sifatida qaytariladi */
+    }
+
+    if (!res.ok) return { ok: false, reason: "http_error", detail: extractErrorDetail(json) ?? `HTTP ${res.status}` };
+    if (hasApiErrors(json)) {
+      const detail = extractErrorDetail(json);
+      const rateLimited = detail ? /limit|too many|quota/i.test(detail) : false;
+      return { ok: false, reason: rateLimited ? "rate_limited" : "http_error", detail };
+    }
+    return { ok: true, data: json as T };
   } catch {
     return { ok: false, reason: "network_error" };
   }
