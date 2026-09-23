@@ -18,6 +18,12 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     title: `${cat.name} yangiliklari`,
     description: cat.description,
     alternates: { canonical: `/kategoriya/${cat.slug}` },
+    openGraph: {
+      type: "website",
+      title: `${cat.name} yangiliklari`,
+      description: cat.description,
+      url: `/kategoriya/${cat.slug}`,
+    },
   };
 }
 
