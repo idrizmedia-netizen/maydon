@@ -2,6 +2,7 @@ import { cache } from "react";
 import { remark } from "remark";
 import remarkHtml from "remark-html";
 import { getCategory } from "./config";
+import { getCommentCounts } from "./comments";
 import { kvDel, kvGet, kvIncr, kvMget, kvMode, kvSet } from "./kv";
 import { SEED_ARTICLES } from "./seed";
 import { slugify } from "./slug";
@@ -34,6 +35,7 @@ export type ArticleMeta = Omit<StoredArticle, "content" | "image"> & {
   image?: string;
   readingMinutes: number;
   views: number;
+  commentCount: number;
 };
 
 export type Article = ArticleMeta & { html: string };
@@ -48,7 +50,7 @@ function readingTime(text: string): number {
   return Math.max(1, Math.round(words / 180));
 }
 
-function toMeta(a: StoredArticle, views = 0): ArticleMeta {
+function toMeta(a: StoredArticle, views = 0, commentCount = 0): ArticleMeta {
   const { content, image, ...rest } = a;
   return {
     ...rest,
@@ -58,6 +60,7 @@ function toMeta(a: StoredArticle, views = 0): ArticleMeta {
     media: a.media ?? "none",
     readingMinutes: readingTime(content),
     views,
+    commentCount,
   };
 }
 
@@ -123,8 +126,9 @@ const readPublic = cache(() => readAllStored(false));
 export const getAllArticles = cache(async (): Promise<ArticleMeta[]> => {
   const all = await readPublic();
   const published = all.filter((a) => !a.draft);
-  const views = await readViews(published.map((a) => a.slug));
-  return published.map((a) => toMeta(a, views[a.slug])).sort(bySort);
+  const slugs = published.map((a) => a.slug);
+  const [views, comments] = await Promise.all([readViews(slugs), getCommentCounts(slugs)]);
+  return published.map((a) => toMeta(a, views[a.slug], comments[a.slug])).sort(bySort);
 });
 
 export async function getArticle(slug: string): Promise<Article | null> {
@@ -132,8 +136,8 @@ export async function getArticle(slug: string): Promise<Article | null> {
   const found = all.find((a) => a.slug === slug && !a.draft);
   if (!found) return null;
   const html = String(await remark().use(remarkHtml).process(found.content));
-  const views = await readViews([slug]);
-  return { ...toMeta(found, views[slug]), html };
+  const [views, comments] = await Promise.all([readViews([slug]), getCommentCounts([slug])]);
+  return { ...toMeta(found, views[slug], comments[slug]), html };
 }
 
 // Eng ko'p o'qilgan maqolalar - "Qaynoq yangiliklar" bloki uchun.
