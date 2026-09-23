@@ -112,6 +112,7 @@ function syncRedirectUrl(leagueKey: string, result: SyncResult, count: number): 
   } else {
     params.set("sync", "err");
     params.set("reason", result.reason);
+    if (result.detail) params.set("detail", result.detail);
   }
   return `/admin/oyinlar?${params.toString()}`;
 }
