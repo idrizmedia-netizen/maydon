@@ -80,14 +80,30 @@ export default async function PublicGameCenterPage({ searchParams }: Props) {
           {categories.map((cat) => {
             const catGames = games.filter((g) => g.category === cat.slug);
             if (catGames.length === 0) return null;
+
+            // Futbolda bir nechta turnir bo'lishi mumkin - ular ostida kichik sarlavha bilan guruhlaymiz.
+            const groups: { league: string | null; items: typeof catGames }[] =
+              cat.slug === "futbol" && catGames.some((g) => g.league)
+                ? Array.from(new Set(catGames.map((g) => g.league ?? "Boshqa"))).map((league) => ({
+                    league,
+                    items: catGames.filter((g) => (g.league ?? "Boshqa") === league),
+                  }))
+                : [{ league: null, items: catGames }];
+
             return (
               <section key={cat.slug} aria-labelledby={`oyin-${cat.slug}`}>
                 <h2 id={`oyin-${cat.slug}`} className="mb-3 flex items-center gap-3 text-xl font-extrabold tracking-tight">
                   <span className="inline-block h-5 w-1.5 rounded-sm" style={{ backgroundColor: cat.color }} aria-hidden="true" />
                   {cat.name}
                 </h2>
-                <div className="overflow-hidden rounded border border-line bg-surface">
-                  {catGames.map((g, i) => {
+                {groups.map((group) => (
+                <div key={group.league ?? "all"} className="mb-4 overflow-hidden rounded border border-line bg-surface last:mb-0">
+                  {group.league && (
+                    <div className="border-b border-line bg-bg px-4 py-2 text-xs font-bold uppercase tracking-wide text-muted">
+                      {group.league}
+                    </div>
+                  )}
+                  {group.items.map((g, i) => {
                     const hasScore = g.score1 !== null && g.score2 !== null;
                     return (
                       <div
@@ -118,6 +134,7 @@ export default async function PublicGameCenterPage({ searchParams }: Props) {
                     );
                   })}
                 </div>
+                ))}
               </section>
             );
           })}
