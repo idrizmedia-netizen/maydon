@@ -3,8 +3,9 @@
 import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 import { SESSION_COOKIE, verifySession } from "@/lib/auth";
-import { addGame, deleteGame, updateGame, type GameStatus } from "@/lib/games";
+import { addGame, deleteGame, getGames, updateGame, type GameStatus } from "@/lib/games";
 import { todayTashkent } from "@/lib/format";
+import { fetchFootballGamesToday, fetchMmaGamesToday, type FetchedGame } from "@/lib/sports-api";
 
 async function requireAdmin() {
   const ok = await verifySession((await cookies()).get(SESSION_COOKIE)?.value);
@@ -69,5 +70,41 @@ export async function deleteGameAction(formData: FormData) {
   const date = getDate(formData);
   await deleteGame(id, date);
   revalidatePath("/admin/oyinlar");
+  revalidatePath("/");
+}
+
+// API'dan olingan o'yinlarni shu kungi ro'yxatga qo'shadi: nomlari mos keladigan
+// o'yin allaqachon bo'lsa - yangilaydi (hisob/holat), bo'lmasa - yangi qo'shadi.
+async function syncCategory(category: string, fetched: FetchedGame[]) {
+  const date = todayTashkent();
+  const existing = await getGames(date);
+  for (const g of fetched) {
+    const match = existing.find(
+      (e) =>
+        e.category === category &&
+        e.team1.toLowerCase() === g.team1.toLowerCase() &&
+        e.team2.toLowerCase() === g.team2.toLowerCase()
+    );
+    if (match) {
+      await updateGame(match.id, { ...g, category }, date);
+    } else {
+      await addGame({ ...g, category }, date);
+    }
+  }
+}
+
+export async function syncFootballAction() {
+  await requireAdmin();
+  await syncCategory("futbol", await fetchFootballGamesToday());
+  revalidatePath("/admin/oyinlar");
+  revalidatePath("/oyinlar");
+  revalidatePath("/");
+}
+
+export async function syncMmaAction() {
+  await requireAdmin();
+  await syncCategory("mma", await fetchMmaGamesToday());
+  revalidatePath("/admin/oyinlar");
+  revalidatePath("/oyinlar");
   revalidatePath("/");
 }
