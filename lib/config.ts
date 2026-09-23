@@ -6,7 +6,14 @@ export const siteConfig = {
   description:
     "O'zbek tilida sport yangiliklari: futbol, boks, kurash, tennis, MMA va boshqa sport turlari bo'yicha maqolalar.",
   url: (process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000").replace(/\/$/, ""),
-  telegram: "", // Masalan: "https://t.me/kanal_nomi". Bo'sh bo'lsa, tugma ko'rinmaydi.
+  // Har birini to'ldiring - bo'sh qoldirilsa, ijtimoiy tarmoq tugmasi ko'rinmaydi.
+  social: {
+    telegram: "", // https://t.me/kanal_nomi
+    instagram: "", // https://instagram.com/nomi
+    facebook: "", // https://facebook.com/nomi
+    x: "", // https://x.com/nomi
+    youtube: "", // https://youtube.com/@nomi
+  },
 };
 
 export type Category = {
