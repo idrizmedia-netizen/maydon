@@ -1,11 +1,19 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { SESSION_COOKIE, verifySession } from "@/lib/auth";
 import { addGame, deleteGame, getGames, updateGame, type GameStatus } from "@/lib/games";
 import { todayTashkent } from "@/lib/format";
-import { fetchFootballGamesToday, fetchMmaGamesToday, type FetchedGame } from "@/lib/sports-api";
+import {
+  fetchFootballLeagueGames,
+  fetchMmaGamesToday,
+  type FetchedGame,
+  type LeagueKey,
+  type SyncFailReason,
+  type SyncResult,
+} from "@/lib/sports-api";
 
 async function requireAdmin() {
   const ok = await verifySession((await cookies()).get(SESSION_COOKIE)?.value);
@@ -74,8 +82,8 @@ export async function deleteGameAction(formData: FormData) {
 }
 
 // API'dan olingan o'yinlarni shu kungi ro'yxatga qo'shadi: nomlari mos keladigan
-// o'yin allaqachon bo'lsa - yangilaydi (hisob/holat), bo'lmasa - yangi qo'shadi.
-async function syncCategory(category: string, fetched: FetchedGame[]) {
+// o'yin allaqachon bo'lsa - yangilaydi (hisob/holat/liga), bo'lmasa - yangi qo'shadi.
+async function syncCategory(category: string, fetched: FetchedGame[]): Promise<number> {
   const date = todayTashkent();
   const existing = await getGames(date);
   for (const g of fetched) {
@@ -91,20 +99,41 @@ async function syncCategory(category: string, fetched: FetchedGame[]) {
       await addGame({ ...g, category }, date);
     }
   }
+  return fetched.length;
 }
 
-export async function syncFootballAction() {
+// Sync natijasidan keyin admin sahifasiga natija/xato haqida xabar bilan qaytaradi
+// (?sync=ok&league=...&count=... yoki ?sync=err&league=...&reason=...).
+function syncRedirectUrl(leagueKey: string, result: SyncResult, count: number): string {
+  const params = new URLSearchParams({ league: leagueKey });
+  if (result.ok) {
+    params.set("sync", "ok");
+    params.set("count", String(count));
+  } else {
+    params.set("sync", "err");
+    params.set("reason", result.reason);
+  }
+  return `/admin/oyinlar?${params.toString()}`;
+}
+
+export async function syncLeagueAction(leagueKey: LeagueKey, _formData: FormData) {
   await requireAdmin();
-  await syncCategory("futbol", await fetchFootballGamesToday());
+  const result = await fetchFootballLeagueGames(leagueKey);
+  const count = result.ok ? await syncCategory("futbol", result.games) : 0;
   revalidatePath("/admin/oyinlar");
   revalidatePath("/oyinlar");
   revalidatePath("/");
+  redirect(syncRedirectUrl(leagueKey, result, count));
 }
 
 export async function syncMmaAction() {
   await requireAdmin();
-  await syncCategory("mma", await fetchMmaGamesToday());
+  const result = await fetchMmaGamesToday();
+  const count = result.ok ? await syncCategory("mma", result.games) : 0;
   revalidatePath("/admin/oyinlar");
   revalidatePath("/oyinlar");
   revalidatePath("/");
+  redirect(syncRedirectUrl("mma", result, count));
 }
+
+export type { SyncFailReason };
