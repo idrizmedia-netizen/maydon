@@ -62,7 +62,7 @@ export default async function Comments({ slug }: { slug: string }) {
               <div className="flex items-center gap-2 text-sm">
                 <span className="font-bold">{c.nickname}</span>
                 <time className="text-muted">{new Date(c.createdAt).toLocaleDateString("uz-UZ")}</time>
-                {isAdmin && (
+                {(isAdmin || c.userId === userId) && (
                   <form action={deleteCommentAction} className="ml-auto">
                     <input type="hidden" name="slug" value={slug} />
                     <input type="hidden" name="id" value={c.id} />
