@@ -13,7 +13,7 @@
 // hisob mavjud bo'lsa "tugadi", aks holda "rejalashtirilgan" deb belgilanadi.
 
 import { todayTashkent } from "./format";
-import type { FetchedGame, LeagueDef, SyncResult } from "./sports-api";
+import type { FetchedGame, LeagueDef, SyncFailReason, SyncResult } from "./sports-api";
 import type { GameStatus } from "./games";
 
 const KEY = process.env.THESPORTSDB_KEY || "3";
@@ -56,13 +56,31 @@ function eventTime(e: TSDBEvent): string {
 
 export async function fetchTheSportsDbLeagueGames(def: LeagueDef): Promise<SyncResult> {
   if (!def.theSportsDbMatch) return { ok: false, reason: "not_found" };
-
   const date = todayTashkent();
+  const res = await tsdbEventsDay(date, "Soccer");
+  if (!res.ok) return res;
+  const matched = res.events.filter((e) => def.theSportsDbMatch!.test(e.strLeague ?? ""));
+  return { ok: true, games: matched.map((e) => toFetchedGame(e, def.label)) };
+}
+
+// Tennis va boks kabi sport turlarida "liga" tushunchasi yo'q (turnirlar har hafta
+// o'zgaradi) - shuning uchun kunlik BARCHA o'yin/janglarni bitta so'rov bilan olamiz,
+// har birining o'z turniri nomi (strLeague) "league" maydoniga yoziladi (guruhlash uchun).
+export async function fetchTheSportsDbSportGames(sport: string): Promise<SyncResult> {
+  const date = todayTashkent();
+  const res = await tsdbEventsDay(date, sport);
+  if (!res.ok) return res;
+  return { ok: true, games: res.events.map((e) => toFetchedGame(e, e.strLeague ?? undefined)) };
+}
+
+async function tsdbEventsDay(
+  date: string,
+  sport: string
+): Promise<{ ok: true; events: TSDBEvent[] } | { ok: false; reason: SyncFailReason; detail?: string }> {
   try {
-    const res = await fetch(
-      `https://www.thesportsdb.com/api/v1/json/${KEY}/eventsday.php?d=${date}&s=Soccer`,
-      { cache: "no-store" }
-    );
+    const res = await fetch(`https://www.thesportsdb.com/api/v1/json/${KEY}/eventsday.php?d=${date}&s=${encodeURIComponent(sport)}`, {
+      cache: "no-store",
+    });
     if (res.status === 429) return { ok: false, reason: "rate_limited" };
 
     let json: unknown = null;
@@ -71,29 +89,25 @@ export async function fetchTheSportsDbLeagueGames(def: LeagueDef): Promise<SyncR
     } catch {
       /* javob JSON emas - pastda umumiy xato sifatida qaytariladi */
     }
-
     if (!res.ok) return { ok: false, reason: "http_error", detail: `HTTP ${res.status}` };
 
-    const events = (json as EventsDayResponse | null)?.events ?? [];
-    const matched = events.filter((e) => def.theSportsDbMatch!.test(e.strLeague ?? ""));
-
-    const games: FetchedGame[] = matched
-      .filter((e) => e.strHomeTeam && e.strAwayTeam)
-      .map((e) => {
-        const score1 = e.intHomeScore !== null ? Number(e.intHomeScore) : null;
-        const score2 = e.intAwayScore !== null ? Number(e.intAwayScore) : null;
-        return {
-          team1: e.strHomeTeam!,
-          team2: e.strAwayTeam!,
-          time: eventTime(e),
-          status: mapStatus(e.strStatus, score1 !== null),
-          score1,
-          score2,
-          league: def.label,
-        };
-      });
-    return { ok: true, games };
+    const events = ((json as EventsDayResponse | null)?.events ?? []).filter((e) => e.strHomeTeam && e.strAwayTeam);
+    return { ok: true, events };
   } catch {
     return { ok: false, reason: "network_error" };
   }
+}
+
+function toFetchedGame(e: TSDBEvent, league: string | undefined): FetchedGame {
+  const score1 = e.intHomeScore !== null ? Number(e.intHomeScore) : null;
+  const score2 = e.intAwayScore !== null ? Number(e.intAwayScore) : null;
+  return {
+    team1: e.strHomeTeam!,
+    team2: e.strAwayTeam!,
+    time: eventTime(e),
+    status: mapStatus(e.strStatus, score1 !== null),
+    score1,
+    score2,
+    league,
+  };
 }
