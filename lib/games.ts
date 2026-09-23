@@ -14,6 +14,7 @@ export type Game = {
   score2: number | null;
   time: string; // masalan "18:00", bo'sh bo'lishi mumkin
   status: GameStatus;
+  league?: string; // masalan "Premier Liga", "Chempionlar Ligasi" - avtomatik yuklashda to'ldiriladi
 };
 
 const gamesKey = (date: string) => `games:${date}`;
