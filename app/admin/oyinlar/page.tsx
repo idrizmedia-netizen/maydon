@@ -8,6 +8,12 @@ export const metadata: Metadata = {
   title: "O'yinlar markazi",
   description: "Bugungi va yaqin kunlardagi sport o'yinlari, natijalar va jadval.",
   alternates: { canonical: "/oyinlar" },
+  openGraph: {
+    type: "website",
+    title: "O'yinlar markazi",
+    description: "Bugungi va yaqin kunlardagi sport o'yinlari, natijalar va jadval.",
+    url: "/oyinlar",
+  },
 };
 export const dynamic = "force-dynamic";
 
