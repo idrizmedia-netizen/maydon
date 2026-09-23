@@ -1,14 +1,18 @@
-// API-SPORTS (api-sports.io) orqali futbol va MMA o'yinlarini avtomatik olib kelish.
+// O'yinlarni avtomatik yuklash uchun umumiy turlar va yordamchi funksiyalar, shuningdek
+// API-SPORTS (api-sports.io) orqali MMA jangларini olib kelish.
 //
 // MUHIM: bu funksiyalar faqat admin "Avtomatik yuklash" tugmasini bosganda chaqiriladi,
-// oddiy tashrifchi sahifani ochganda EMAS - bepul reja kuniga atigi 100 so'rovga
-// cheklangan (har mahsulot/sport turi uchun ALOHIDA - futbol va MMA ikkita alohida
-// mahsulot, ikkalasiga ham dashboard.api-football.com'da alohida obuna kerak,
-// hattoki kalit bitta bo'lsa ham).
+// oddiy tashrifchi sahifani ochganda EMAS.
 //
-// Kerakli environment variable: API_SPORTS_KEY (dashboard.api-football.com'dagi kalitingiz).
+// Futbol endi UCHTA manbadan keladi (har birining kodi alohida faylda):
+//   - lib/football-data.ts  -> football-data.org: Premier Liga, La Liga, Seriya A,
+//     Bundesliga, Ligue 1, Chempionlar Ligasi (mangu bepul, lekin faqat shu bir
+//     nechta yirik turnir). Kerakli env: FOOTBALL_DATA_TOKEN.
+//   - lib/thesportsdb.ts    -> TheSportsDB: O'zbekiston Superligasi va UEFA Yevropa
+//     Ligasi (football-data.org bularni bermaydi). Kerakli env (ixtiyoriy): THESPORTSDB_KEY.
+//   - shu fayl              -> MMA: API-Sports (v1.mma.api-sports.io). Kerakli env:
+//     API_SPORTS_KEY (dashboard.api-football.com'dagi kalitingiz).
 
-import { kvGet, kvSet } from "./kv";
 import { todayTashkent } from "./format";
 import type { GameStatus } from "./games";
 
@@ -30,7 +34,7 @@ export type SyncResult =
   | { ok: true; games: FetchedGame[] }
   | { ok: false; reason: SyncFailReason; detail?: string };
 
-function tashkentTime(iso: string): string {
+export function tashkentTime(iso: string): string {
   try {
     return new Intl.DateTimeFormat("en-GB", {
       timeZone: "Asia/Tashkent",
@@ -42,11 +46,46 @@ function tashkentTime(iso: string): string {
   }
 }
 
-type ApiResult<T> = { ok: true; data: T } | { ok: false; reason: SyncFailReason; detail?: string };
+/* ---------- Futbol: ligalar ro'yxati (barcha manbalar uchun umumiy) ---------- */
 
-// API-Sports ba'zan HTTP 200 bilan javob berib, xatoni "errors" maydonida qaytaradi
-// (masalan, shu mahsulotga obuna bo'lmaganda yoki daqiqalik limitga tegib ketganda) -
-// shuni ham xato deb hisoblaymiz va matnini admin panelga ko'rsatish uchun ajratib olamiz.
+export type LeagueKey =
+  | "uzbekistan"
+  | "premier-league"
+  | "la-liga"
+  | "serie-a"
+  | "bundesliga"
+  | "ligue-1"
+  | "champions-league"
+  | "europa-league";
+
+export type LeagueSource = "football-data" | "thesportsdb";
+
+export type LeagueDef = {
+  key: LeagueKey;
+  label: string;
+  source: LeagueSource;
+  footballDataCode?: string; // football-data.org musobaqa kodi (source: "football-data")
+  theSportsDbMatch?: RegExp; // TheSportsDB'dagi strLeague nomiga moslashtirish uchun (source: "thesportsdb")
+};
+
+export const FOOTBALL_LEAGUES: LeagueDef[] = [
+  { key: "uzbekistan", label: "O'zbekiston Superligasi", source: "thesportsdb", theSportsDbMatch: /uzbekistan/i },
+  { key: "premier-league", label: "Angliya - Premier Liga", source: "football-data", footballDataCode: "PL" },
+  { key: "la-liga", label: "Ispaniya - La Liga", source: "football-data", footballDataCode: "PD" },
+  { key: "serie-a", label: "Italiya - Seriya A", source: "football-data", footballDataCode: "SA" },
+  { key: "bundesliga", label: "Germaniya - Bundesliga", source: "football-data", footballDataCode: "BL1" },
+  { key: "ligue-1", label: "Fransiya - Ligue 1", source: "football-data", footballDataCode: "FL1" },
+  { key: "champions-league", label: "UEFA Chempionlar Ligasi", source: "football-data", footballDataCode: "CL" },
+  { key: "europa-league", label: "UEFA Yevropa Ligasi", source: "thesportsdb", theSportsDbMatch: /europa league/i },
+];
+
+/* ---------- MMA: API-Sports ---------- */
+// Diqqat: API-MMA (v1.mma.api-sports.io) asosiy futbol API'sidan ALOHIDA mahsulot -
+// bir xil hisob/kalit bilan ishlaydi, lekin dashboard.api-football.com'da unga
+// ALOHIDA obuna (bepul reja ham bo'lsa-da, faollashtirish kerak) bo'lishi shart,
+// aks holda so'rovlar "http_error" bilan qaytadi. Bu qism, futboldan farqli o'laroq,
+// joriy mavsum cheklovisiz ishlashi tasdiqlangan.
+
 function hasApiErrors(json: unknown): boolean {
   const e = (json as { errors?: unknown } | null)?.errors;
   if (!e) return false;
@@ -66,8 +105,11 @@ function extractErrorDetail(json: unknown): string | undefined {
   return String(e).slice(0, 200);
 }
 
-async function apiSportsGet<T>(host: string, path: string): Promise<ApiResult<T>> {
-  if (!KEY) return { ok: false, reason: "no_key" };
+async function apiSportsGet<T>(
+  host: string,
+  path: string
+): Promise<{ ok: true; data: T } | { ok: false; reason: SyncFailReason; detail?: string }> {
+  if (!KEY) return { ok: false, reason: "no_key", detail: "API_SPORTS_KEY topilmadi" };
   try {
     const res = await fetch(`https://${host}.api-sports.io${path}`, {
       headers: { "x-apisports-key": KEY },
@@ -93,124 +135,6 @@ async function apiSportsGet<T>(host: string, path: string): Promise<ApiResult<T>
     return { ok: false, reason: "network_error" };
   }
 }
-
-/* ---------- Futbol: ligalar ro'yxati ---------- */
-
-export type LeagueKey =
-  | "uzbekistan"
-  | "premier-league"
-  | "la-liga"
-  | "serie-a"
-  | "bundesliga"
-  | "ligue-1"
-  | "champions-league"
-  | "europa-league";
-
-// apiId berilgan bo'lsa - doimiy (barqaror) API-Football liga ID'si.
-// Berilmasa (O'zbekiston) - nomi bo'yicha dinamik qidiriladi (quyida).
-export const FOOTBALL_LEAGUES: { key: LeagueKey; label: string; apiId?: number }[] = [
-  { key: "uzbekistan", label: "O'zbekiston Superligasi" },
-  { key: "premier-league", label: "Angliya - Premier Liga", apiId: 39 },
-  { key: "la-liga", label: "Ispaniya - La Liga", apiId: 140 },
-  { key: "serie-a", label: "Italiya - Seriya A", apiId: 135 },
-  { key: "bundesliga", label: "Germaniya - Bundesliga", apiId: 78 },
-  { key: "ligue-1", label: "Fransiya - Ligue 1", apiId: 61 },
-  { key: "champions-league", label: "UEFA Chempionlar Ligasi", apiId: 2 },
-  { key: "europa-league", label: "UEFA Yevropa Ligasi", apiId: 3 },
-];
-
-type LeagueInfo = { id: number; season: number };
-type SeasonsResponse = { response: { league: { id: number; name: string; type: string }; seasons: { year: number; current: boolean }[] }[] };
-
-// Barqaror ID'si bor liga uchun: joriy mavsum raqamini topib, KV'da keshlaydi
-// (mavsum raqami taxminan yiliga bir marta o'zgaradi).
-async function getLeagueSeasonById(apiId: number, cacheKey: string): Promise<ApiResult<LeagueInfo>> {
-  const cached = await kvGet(cacheKey).catch(() => null);
-  if (cached) {
-    try {
-      return { ok: true, data: JSON.parse(cached) as LeagueInfo };
-    } catch {
-      /* buzilgan kesh - qaytadan izlaymiz */
-    }
-  }
-  const res = await apiSportsGet<SeasonsResponse>("v3.football", `/leagues?id=${apiId}`);
-  if (!res.ok) return res;
-  const season = res.data.response[0]?.seasons.find((s) => s.current)?.year;
-  if (!season) return { ok: false, reason: "not_found" };
-  const info: LeagueInfo = { id: apiId, season };
-  await kvSet(cacheKey, JSON.stringify(info)).catch(() => {});
-  return { ok: true, data: info };
-}
-
-// O'zbekiston Superligasi'ning ID'si barqaror emas deb topilgani uchun (dastlabki
-// versiyada ham shunday edi) - mamlakat + nomi bo'yicha qidiramiz.
-async function getUzLeague(): Promise<ApiResult<LeagueInfo>> {
-  const cacheKey = "sports-api:league:uzbekistan";
-  const cached = await kvGet(cacheKey).catch(() => null);
-  if (cached) {
-    try {
-      return { ok: true, data: JSON.parse(cached) as LeagueInfo };
-    } catch {
-      /* buzilgan kesh - qaytadan izlaymiz */
-    }
-  }
-  const res = await apiSportsGet<SeasonsResponse>("v3.football", "/leagues?country=Uzbekistan");
-  if (!res.ok) return res;
-  const found = res.data.response.find((r) => r.league.type === "League" && /super/i.test(r.league.name));
-  const season = found?.seasons.find((s) => s.current)?.year;
-  if (!found || !season) return { ok: false, reason: "not_found" };
-  const info: LeagueInfo = { id: found.league.id, season };
-  await kvSet(cacheKey, JSON.stringify(info)).catch(() => {});
-  return { ok: true, data: info };
-}
-
-function mapFootballStatus(short: string): GameStatus {
-  if (["1H", "2H", "HT", "ET", "P", "LIVE", "BT"].includes(short)) return "jonli";
-  if (["FT", "AET", "PEN"].includes(short)) return "tugadi";
-  return "rejalashtirilgan";
-}
-
-type FixturesResponse = {
-  response: {
-    fixture: { date: string; status: { short: string } };
-    teams: { home: { name: string }; away: { name: string } };
-    goals: { home: number | null; away: number | null };
-  }[];
-};
-
-// Berilgan liga uchun BUGUNGI o'yinlarni oladi.
-export async function fetchFootballLeagueGames(key: LeagueKey): Promise<SyncResult> {
-  const def = FOOTBALL_LEAGUES.find((l) => l.key === key);
-  if (!def) return { ok: false, reason: "not_found" };
-
-  const leagueRes = def.apiId
-    ? await getLeagueSeasonById(def.apiId, `sports-api:league:${def.key}`)
-    : await getUzLeague();
-  if (!leagueRes.ok) return leagueRes;
-
-  const res = await apiSportsGet<FixturesResponse>(
-    "v3.football",
-    `/fixtures?league=${leagueRes.data.id}&season=${leagueRes.data.season}&date=${todayTashkent()}`
-  );
-  if (!res.ok) return res;
-
-  const games: FetchedGame[] = res.data.response.map((f) => ({
-    team1: f.teams.home.name,
-    team2: f.teams.away.name,
-    time: tashkentTime(f.fixture.date),
-    status: mapFootballStatus(f.fixture.status.short),
-    score1: f.goals.home,
-    score2: f.goals.away,
-    league: def.label,
-  }));
-  return { ok: true, games };
-}
-
-/* ---------- MMA ---------- */
-// Diqqat: API-MMA (v1.mma.api-sports.io) asosiy futbol API'sidan ALOHIDA mahsulot -
-// bir xil hisob/kalit bilan ishlaydi, lekin dashboard.api-football.com'da unga
-// ALOHIDA obuna (bepul reja ham bo'lsa-da, faollashtirish kerak) bo'lishi shart,
-// aks holda so'rovlar "http_error" bilan qaytadi.
 
 function mapMmaStatus(short: string | undefined): GameStatus {
   if (!short || short === "NS" || short === "TBD") return "rejalashtirilgan";
