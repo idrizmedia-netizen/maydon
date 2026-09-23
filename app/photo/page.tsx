@@ -7,6 +7,12 @@ export const metadata: Metadata = {
   title: "Foto",
   description: `${siteConfig.name} saytidagi sport fotogalereyalari.`,
   alternates: { canonical: "/photo" },
+  openGraph: {
+    type: "website",
+    title: `Foto | ${siteConfig.name}`,
+    description: `${siteConfig.name} saytidagi sport fotogalereyalari.`,
+    url: "/photo",
+  },
 };
 
 export default async function PhotoPage() {
