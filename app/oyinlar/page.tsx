@@ -3,6 +3,13 @@ import Link from "next/link";
 import { categories } from "@/lib/config";
 import { getGames } from "@/lib/games";
 import { dateTashkent, formatDate } from "@/lib/format";
+import { getTeamLogos } from "@/lib/team-logo";
+
+function TeamLogo({ src }: { src: string | null }) {
+  if (!src) return null;
+  // eslint-disable-next-line @next/next/no-img-element
+  return <img src={src} alt="" width={22} height={22} className="inline-block shrink-0 rounded-full object-contain" />;
+}
 
 export const metadata: Metadata = {
   title: "O'yinlar markazi",
@@ -36,6 +43,7 @@ export default async function PublicGameCenterPage({ searchParams }: Props) {
   const offset = TABS.some((t) => String(t.offset) === sp.kun) ? Number(sp.kun) : 0;
   const date = dateTashkent(offset);
   const games = await getGames(date);
+  const logos = await getTeamLogos(games.flatMap((g) => [g.team1, g.team2])).catch(() => ({} as Record<string, string | null>));
 
   return (
     <div>
@@ -94,11 +102,17 @@ export default async function PublicGameCenterPage({ searchParams }: Props) {
                           )}
                         </div>
                         <div className="flex flex-1 items-center justify-between gap-3 text-sm font-semibold sm:text-base">
-                          <span className="text-right sm:text-left">{g.team1}</span>
+                          <span className="flex items-center justify-end gap-2 text-right sm:justify-start sm:text-left">
+                            <TeamLogo src={logos[g.team1] ?? null} />
+                            {g.team1}
+                          </span>
                           <span className="shrink-0 tabular-nums text-muted">
                             {hasScore ? `${g.score1} : ${g.score2}` : g.time || "—"}
                           </span>
-                          <span>{g.team2}</span>
+                          <span className="flex items-center gap-2">
+                            {g.team2}
+                            <TeamLogo src={logos[g.team2] ?? null} />
+                          </span>
                         </div>
                       </div>
                     );
