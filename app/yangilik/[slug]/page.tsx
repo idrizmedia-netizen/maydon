@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import ArticleCard from "@/components/ArticleCard";
@@ -110,8 +111,16 @@ export default async function ArticlePage({ params }: Props) {
         )}
 
         {article.image && article.media !== "video" && (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={article.image} alt="" className="mt-8 w-full max-w-3xl rounded" />
+          <div className="relative mt-8 aspect-[16/9] w-full max-w-3xl overflow-hidden rounded">
+            <Image
+              src={article.image}
+              alt=""
+              fill
+              priority
+              sizes="(min-width: 1024px) 768px, 100vw"
+              className="object-cover"
+            />
+          </div>
         )}
 
         <div className="article-body mt-8" dangerouslySetInnerHTML={{ __html: article.html }} />
