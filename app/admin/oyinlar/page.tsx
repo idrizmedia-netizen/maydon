@@ -11,6 +11,7 @@ const SYNC_REASON_LABEL: Record<string, string> = {
   no_key: "API kaliti (API_SPORTS_KEY) sozlanmagan. Vercel → Settings → Environment Variables'ga qo'shing va qayta deploy qiling.",
   http_error:
     "API xato qaytardi: kalit noto'g'ri bo'lishi yoki shu sport/liga uchun dashboard.api-football.com'da obuna faollashtirilmagan bo'lishi mumkin.",
+  rate_limited: "Juda ko'p so'rov yuborildi (daqiqalik limit - 10 so'rov/daqiqa). Bir daqiqa kutib, qayta urinib ko'ring.",
   network_error: "Tarmoq xatosi yuz berdi. Birozdan keyin qayta urinib ko'ring.",
   not_found: "Bu turnir uchun joriy mavsum yoki liga topilmadi.",
 };
