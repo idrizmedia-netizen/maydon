@@ -6,7 +6,6 @@
 // Kalitni bepul olish: www.football-data.org/client/register - ro'yxatdan o'tgach
 // emailingizga token keladi, uni Vercel'da FOOTBALL_DATA_TOKEN nomi bilan qo'shing.
 
-import { todayTashkent } from "./format";
 import { tashkentTime, type FetchedGame, type LeagueDef, type SyncResult } from "./sports-api";
 import type { GameStatus } from "./games";
 
@@ -30,11 +29,11 @@ type MatchesResponse = {
   }[];
 };
 
-export async function fetchFootballDataLeagueGames(def: LeagueDef): Promise<SyncResult> {
+// `date`: "YYYY-MM-DD" — Kecha/Bugun/Ertaga tabidan tanlangan sana.
+export async function fetchFootballDataLeagueGames(def: LeagueDef, date: string): Promise<SyncResult> {
   if (!TOKEN) return { ok: false, reason: "no_key", detail: "FOOTBALL_DATA_TOKEN topilmadi" };
   if (!def.footballDataCode) return { ok: false, reason: "not_found" };
 
-  const date = todayTashkent();
   try {
     const res = await fetch(
       `https://api.football-data.org/v4/competitions/${def.footballDataCode}/matches?dateFrom=${date}&dateTo=${date}`,
