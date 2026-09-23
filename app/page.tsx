@@ -5,11 +5,20 @@ import PitchPanel from "@/components/PitchPanel";
 import { getAllArticles, getArticlesByMedia, getMostViewed } from "@/lib/articles";
 import { getGames } from "@/lib/games";
 import { formatDate, formatViews } from "@/lib/format";
-import { categories, getCategory } from "@/lib/config";
+import { categories, getCategory, siteConfig } from "@/lib/config";
 
 export default async function HomePage() {
   const all = await getAllArticles();
   const games = await getGames().catch(() => []);
+
+  const orgJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "NewsMediaOrganization",
+    name: siteConfig.name,
+    url: siteConfig.url,
+    description: siteConfig.description,
+    logo: `${siteConfig.url}/icon.svg`,
+  };
 
   if (all.length === 0) {
     return (
@@ -39,6 +48,10 @@ export default async function HomePage() {
 
   return (
     <div className="space-y-14">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(orgJsonLd) }}
+      />
       {/* Tahririyat tanlovi */}
       <section aria-labelledby="tahririyat">
         <h1 id="tahririyat" className="mb-4 flex items-center gap-2 border-b-[3px] border-hl pb-2 text-xl font-extrabold tracking-tight">
@@ -87,6 +100,7 @@ export default async function HomePage() {
                           <time dateTime={a.date} className="ml-auto">
                             {formatDate(a.date)}
                           </time>
+                          {a.commentCount > 0 && <span>💬 {a.commentCount}</span>}
                         </div>
                         <Link
                           href={`/yangilik/${a.slug}`}
@@ -135,7 +149,10 @@ export default async function HomePage() {
                         {a.title}
                       </Link>
                     </h3>
-                    <p className="mt-1.5 text-xs text-muted">{formatViews(a.views)} ko'rish</p>
+                    <p className="mt-1.5 flex items-center gap-3 text-xs text-muted">
+                      <span>{formatViews(a.views)} ko'rish</span>
+                      {a.commentCount > 0 && <span>💬 {a.commentCount}</span>}
+                    </p>
                   </div>
                 </article>
               );
