@@ -57,7 +57,7 @@ const LEAGUE_LABELS: Record<string, string> = {
 };
 
 type Props = {
-  searchParams: Promise<{ kun?: string; sync?: string; league?: string; count?: string; reason?: string }>;
+  searchParams: Promise<{ kun?: string; sync?: string; league?: string; count?: string; reason?: string; detail?: string }>;
 };
 
 export default async function GameCenterPage({ searchParams }: Props) {
@@ -102,7 +102,10 @@ export default async function GameCenterPage({ searchParams }: Props) {
       )}
       {offset === 0 && sp.sync === "err" && (
         <div className="mb-6 rounded border border-[#C93B3B] bg-[#C93B3B]/10 px-4 py-3 text-sm font-semibold text-[#C93B3B]">
-          {syncLeagueLabel} yuklanmadi: {SYNC_REASON_LABEL[sp.reason ?? ""] ?? "Noma'lum xatolik."}
+          <p>
+            {syncLeagueLabel} yuklanmadi: {SYNC_REASON_LABEL[sp.reason ?? ""] ?? "Noma'lum xatolik."}
+          </p>
+          {sp.detail && <p className="mt-1 font-normal opacity-90">API xabari: "{sp.detail}"</p>}
         </div>
       )}
 
