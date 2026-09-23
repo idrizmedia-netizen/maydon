@@ -7,13 +7,15 @@ import { SESSION_COOKIE, verifySession } from "@/lib/auth";
 import { addGame, deleteGame, getGames, updateGame, type GameStatus } from "@/lib/games";
 import { todayTashkent } from "@/lib/format";
 import {
-  fetchFootballLeagueGames,
   fetchMmaGamesToday,
+  FOOTBALL_LEAGUES,
   type FetchedGame,
   type LeagueKey,
   type SyncFailReason,
   type SyncResult,
 } from "@/lib/sports-api";
+import { fetchFootballDataLeagueGames } from "@/lib/football-data";
+import { fetchTheSportsDbLeagueGames } from "@/lib/thesportsdb";
 
 async function requireAdmin() {
   const ok = await verifySession((await cookies()).get(SESSION_COOKIE)?.value);
@@ -119,7 +121,12 @@ function syncRedirectUrl(leagueKey: string, result: SyncResult, count: number): 
 
 export async function syncLeagueAction(leagueKey: LeagueKey, _formData: FormData) {
   await requireAdmin();
-  const result = await fetchFootballLeagueGames(leagueKey);
+  const def = FOOTBALL_LEAGUES.find((l) => l.key === leagueKey);
+  const result: SyncResult = !def
+    ? { ok: false, reason: "not_found" }
+    : def.source === "football-data"
+    ? await fetchFootballDataLeagueGames(def)
+    : await fetchTheSportsDbLeagueGames(def);
   const count = result.ok ? await syncCategory("futbol", result.games) : 0;
   revalidatePath("/admin/oyinlar");
   revalidatePath("/oyinlar");
