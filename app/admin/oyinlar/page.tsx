@@ -4,6 +4,13 @@ import { categories } from "@/lib/config";
 import { getGames } from "@/lib/games";
 import { dateTashkent, formatDate } from "@/lib/format";
 import { addGameAction, deleteGameAction, updateGameAction } from "./actions";
+import { getTeamLogos } from "@/lib/team-logo";
+
+function TeamLogo({ src }: { src: string | null }) {
+  if (!src) return null;
+  // eslint-disable-next-line @next/next/no-img-element
+  return <img src={src} alt="" width={28} height={28} className="shrink-0 rounded-full border border-line object-contain" />;
+}
 
 const inputCls = "w-full rounded border border-line bg-surface px-2.5 py-2 text-sm";
 const selectCls = inputCls;
@@ -41,6 +48,7 @@ export default async function GameCenterPage({ searchParams }: Props) {
   const offset = TABS.some((t) => String(t.offset) === sp.kun) ? Number(sp.kun) : 0;
   const date = dateTashkent(offset);
   const games = await getGames(date);
+  const logos = await getTeamLogos(games.flatMap((g) => [g.team1, g.team2])).catch(() => ({} as Record<string, string | null>));
 
   return (
     <div>
@@ -149,11 +157,17 @@ export default async function GameCenterPage({ searchParams }: Props) {
 
                       <div className="min-w-[9rem] flex-1">
                         <label className={labelCls}>1-jamoa</label>
-                        <input name="team1" defaultValue={g.team1} className={inputCls} required />
+                        <div className="flex items-center gap-2">
+                          <TeamLogo src={logos[g.team1] ?? null} />
+                          <input name="team1" defaultValue={g.team1} className={inputCls} required />
+                        </div>
                       </div>
                       <div className="min-w-[9rem] flex-1">
                         <label className={labelCls}>2-jamoa</label>
-                        <input name="team2" defaultValue={g.team2} className={inputCls} required />
+                        <div className="flex items-center gap-2">
+                          <TeamLogo src={logos[g.team2] ?? null} />
+                          <input name="team2" defaultValue={g.team2} className={inputCls} required />
+                        </div>
                       </div>
                       <div className="w-20">
                         <label className={labelCls}>Vaqti</label>
