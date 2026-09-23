@@ -81,7 +81,7 @@ export default async function GameCenterPage({ searchParams }: Props) {
       <div className="mb-8 flex gap-2 border-b border-line">
         {TABS.map((t) => {
           const active = t.offset === offset;
-          const href = t.offset === 0 ? "/oyinlar" : `/oyinlar?kun=${t.offset}`;
+          const href = t.offset === 0 ? "/admin/oyinlar" : `/admin/oyinlar?kun=${t.offset}`;
           return (
             <Link
               key={t.offset}
@@ -97,12 +97,12 @@ export default async function GameCenterPage({ searchParams }: Props) {
         })}
       </div>
 
-      {offset === 0 && sp.sync === "ok" && (
+      {sp.sync === "ok" && (
         <div className="mb-6 rounded border border-[#1B8A4B] bg-[#1B8A4B]/10 px-4 py-3 text-sm font-semibold text-[#1B8A4B]">
-          {syncLeagueLabel}: {sp.count === "0" ? "bugun uchun o'yin topilmadi." : `${sp.count} ta o'yin yuklandi/yangilandi.`}
+          {syncLeagueLabel}: {sp.count === "0" ? `${formatDate(date)} uchun o'yin topilmadi.` : `${sp.count} ta o'yin yuklandi/yangilandi.`}
         </div>
       )}
-      {offset === 0 && sp.sync === "err" && (
+      {sp.sync === "err" && (
         <div className="mb-6 rounded border border-[#C93B3B] bg-[#C93B3B]/10 px-4 py-3 text-sm font-semibold text-[#C93B3B]">
           <p>
             {syncLeagueLabel} yuklanmadi: {SYNC_REASON_LABEL[sp.reason ?? ""] ?? "Noma'lum xatolik."}
@@ -111,49 +111,47 @@ export default async function GameCenterPage({ searchParams }: Props) {
         </div>
       )}
 
-      {offset === 0 && (
-        <div className="mb-6">
-          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted">
-            Avtomatik yuklash (bugungi o'yinlar)
-          </p>
-          <div className="flex flex-wrap gap-2">
-            {FOOTBALL_LEAGUES.map((l) => (
-              <form key={l.key} action={syncLeagueAction.bind(null, l.key)}>
-                <button
-                  type="submit"
-                  className="rounded border border-line bg-bg px-3.5 py-2 text-sm font-semibold hover:bg-line"
-                >
-                  ⚽ {l.label}
-                </button>
-              </form>
-            ))}
-            <form action={syncMmaAction}>
+      <div className="mb-6">
+        <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted">
+          Avtomatik yuklash ({formatDate(date)})
+        </p>
+        <div className="flex flex-wrap gap-2">
+          {FOOTBALL_LEAGUES.map((l) => (
+            <form key={l.key} action={syncLeagueAction.bind(null, l.key, offset)}>
               <button
                 type="submit"
                 className="rounded border border-line bg-bg px-3.5 py-2 text-sm font-semibold hover:bg-line"
               >
-                🥋 MMA
+                ⚽ {l.label}
               </button>
             </form>
-            <form action={syncBoxingAction}>
-              <button
-                type="submit"
-                className="rounded border border-line bg-bg px-3.5 py-2 text-sm font-semibold hover:bg-line"
-              >
-                🥊 Boks
-              </button>
-            </form>
-            <form action={syncTennisAction}>
-              <button
-                type="submit"
-                className="rounded border border-line bg-bg px-3.5 py-2 text-sm font-semibold hover:bg-line"
-              >
-                🎾 Tennis
-              </button>
-            </form>
-          </div>
+          ))}
+          <form action={syncMmaAction.bind(null, offset)}>
+            <button
+              type="submit"
+              className="rounded border border-line bg-bg px-3.5 py-2 text-sm font-semibold hover:bg-line"
+            >
+              🥋 MMA
+            </button>
+          </form>
+          <form action={syncBoxingAction.bind(null, offset)}>
+            <button
+              type="submit"
+              className="rounded border border-line bg-bg px-3.5 py-2 text-sm font-semibold hover:bg-line"
+            >
+              🥊 Boks
+            </button>
+          </form>
+          <form action={syncTennisAction.bind(null, offset)}>
+            <button
+              type="submit"
+              className="rounded border border-line bg-bg px-3.5 py-2 text-sm font-semibold hover:bg-line"
+            >
+              🎾 Tennis
+            </button>
+          </form>
         </div>
-      )}
+      </div>
 
       <section className="mb-10 rounded border border-line bg-surface p-4">
         <h2 className="mb-3 text-lg font-extrabold tracking-tight">
