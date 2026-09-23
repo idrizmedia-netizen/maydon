@@ -15,7 +15,7 @@ import {
   type SyncResult,
 } from "@/lib/sports-api";
 import { fetchFootballDataLeagueGames } from "@/lib/football-data";
-import { fetchTheSportsDbLeagueGames } from "@/lib/thesportsdb";
+import { fetchTheSportsDbLeagueGames, fetchTheSportsDbSportGames } from "@/lib/thesportsdb";
 
 async function requireAdmin() {
   const ok = await verifySession((await cookies()).get(SESSION_COOKIE)?.value);
@@ -142,6 +142,26 @@ export async function syncMmaAction() {
   revalidatePath("/oyinlar");
   revalidatePath("/");
   redirect(syncRedirectUrl("mma", result, count));
+}
+
+export async function syncTennisAction() {
+  await requireAdmin();
+  const result = await fetchTheSportsDbSportGames("Tennis");
+  const count = result.ok ? await syncCategory("tennis", result.games) : 0;
+  revalidatePath("/admin/oyinlar");
+  revalidatePath("/oyinlar");
+  revalidatePath("/");
+  redirect(syncRedirectUrl("tennis", result, count));
+}
+
+export async function syncBoxingAction() {
+  await requireAdmin();
+  const result = await fetchTheSportsDbSportGames("Boxing");
+  const count = result.ok ? await syncCategory("boks", result.games) : 0;
+  revalidatePath("/admin/oyinlar");
+  revalidatePath("/oyinlar");
+  revalidatePath("/");
+  redirect(syncRedirectUrl("boks", result, count));
 }
 
 export type { SyncFailReason };
