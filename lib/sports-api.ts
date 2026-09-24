@@ -63,19 +63,33 @@ export type LeagueDef = {
   key: LeagueKey;
   label: string;
   source: LeagueSource;
+  flag: string; // bayroq/belgi emoji - ligalar ro'yxati sahifasida ko'rsatish uchun
   footballDataCode?: string; // football-data.org musobaqa kodi (source: "football-data")
   theSportsDbMatch?: RegExp; // TheSportsDB'dagi strLeague nomiga moslashtirish uchun (source: "thesportsdb")
 };
 
 export const FOOTBALL_LEAGUES: LeagueDef[] = [
-  { key: "uzbekistan", label: "O'zbekiston Superligasi", source: "thesportsdb", theSportsDbMatch: /uzbekistan/i },
-  { key: "premier-league", label: "Angliya - Premier Liga", source: "football-data", footballDataCode: "PL" },
-  { key: "la-liga", label: "Ispaniya - La Liga", source: "football-data", footballDataCode: "PD" },
-  { key: "serie-a", label: "Italiya - Seriya A", source: "football-data", footballDataCode: "SA" },
-  { key: "bundesliga", label: "Germaniya - Bundesliga", source: "football-data", footballDataCode: "BL1" },
-  { key: "ligue-1", label: "Fransiya - Ligue 1", source: "football-data", footballDataCode: "FL1" },
-  { key: "champions-league", label: "UEFA Chempionlar Ligasi", source: "football-data", footballDataCode: "CL" },
-  { key: "europa-league", label: "UEFA Yevropa Ligasi", source: "thesportsdb", theSportsDbMatch: /europa league/i },
+  { key: "uzbekistan", label: "O'zbekiston Superligasi", source: "thesportsdb", flag: "🇺🇿", theSportsDbMatch: /uzbekistan/i },
+  { key: "premier-league", label: "Angliya - Premier Liga", source: "football-data", flag: "🏴", footballDataCode: "PL" },
+  { key: "la-liga", label: "Ispaniya - La Liga", source: "football-data", flag: "🇪🇸", footballDataCode: "PD" },
+  { key: "serie-a", label: "Italiya - Seriya A", source: "football-data", flag: "🇮🇹", footballDataCode: "SA" },
+  { key: "bundesliga", label: "Germaniya - Bundesliga", source: "football-data", flag: "🇩🇪", footballDataCode: "BL1" },
+  { key: "ligue-1", label: "Fransiya - Ligue 1", source: "football-data", flag: "🇫🇷", footballDataCode: "FL1" },
+  { key: "champions-league", label: "UEFA Chempionlar Ligasi", source: "football-data", flag: "🏆", footballDataCode: "CL" },
+  { key: "europa-league", label: "UEFA Yevropa Ligasi", source: "thesportsdb", flag: "🏆", theSportsDbMatch: /europa league/i },
+];
+
+// O'yinlar markazidagi sidebar va "Ligalar" sahifasi uchun umumiy ro'yxat: futbol
+// ligalari + liga tushunchasi bo'lmagan sport turlari (MMA/Tennis/Boks).
+// `filter` - /oyinlar?liga=... filtrida ishlatiladigan qiymat (futbolda `league`
+// maydoniga, boshqalarida `category`ga mos keladi).
+export type GameCenterItem = { label: string; filter: string; icon: string };
+
+export const GAME_CENTER_ITEMS: GameCenterItem[] = [
+  ...FOOTBALL_LEAGUES.map((l) => ({ label: l.label, filter: l.label, icon: l.flag })),
+  { label: "MMA", filter: "mma", icon: "🥋" },
+  { label: "Tennis", filter: "tennis", icon: "🎾" },
+  { label: "Boks", filter: "boks", icon: "🥊" },
 ];
 
 /* ---------- MMA: API-Sports ---------- */
